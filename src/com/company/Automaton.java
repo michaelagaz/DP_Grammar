@@ -18,12 +18,14 @@ public class Automaton {
         this.grammar = grammar;
     }
 
-    public Automaton (){
-        Grammar grammar = new Grammar(addNonTerminals(addRules()),addTerminals(addRules()),"S",addRules());
+    public Automaton() {
+        Grammar grammar = new Grammar(addNonTerminals(addRules()), addTerminals(addRules()), "S", addRules());
         this.grammar = grammar;
-        System.out.println("NonTerminals: "+addNonTerminals(addRules()));
-        System.out.println("Terminals: "+addTerminals(addRules()));
+        System.out.println("NonTerminals: " + addNonTerminals(addRules()));
+        System.out.println("Terminals: " + addTerminals(addRules()));
         grammar.getRulesOutput(addRules());
+
+        createPDAfromCFG(grammar);
     }
 
 
@@ -58,9 +60,9 @@ public class Automaton {
     public List<String> addNonTerminals(List<Rule> rules) {
         List<String> nonTerminals = new ArrayList<>();
         for (Rule rule : rules) {
-            for(int i = 0; i < rule.getLeftSide().length(); i++){
-                if(isUpperCase(rule.getLeftSide().charAt(i))){
-                    if(!nonTerminals.contains(String.valueOf(rule.getLeftSide().charAt(i)))){
+            for (int i = 0; i < rule.getLeftSide().length(); i++) {
+                if (isUpperCase(rule.getLeftSide().charAt(i))) {
+                    if (!nonTerminals.contains(String.valueOf(rule.getLeftSide().charAt(i)))) {
                         nonTerminals.add(String.valueOf(rule.getLeftSide().charAt(i)));
                     }
                 }
@@ -68,12 +70,13 @@ public class Automaton {
         }
         return nonTerminals;
     }
+
     public List<String> addTerminals(List<Rule> rules) {
         List<String> terminals = new ArrayList<>();
         for (Rule rule : rules) {
-            for(int i = 0; i < rule.getRightSide().length(); i++){
-                if(isLowerCase(rule.getRightSide().charAt(i))){
-                    if(!terminals.contains(String.valueOf(rule.getRightSide().charAt(i)))){
+            for (int i = 0; i < rule.getRightSide().length(); i++) {
+                if (isLowerCase(rule.getRightSide().charAt(i))) {
+                    if (!terminals.contains(String.valueOf(rule.getRightSide().charAt(i)))) {
                         terminals.add(String.valueOf(rule.getRightSide().charAt(i)));
                     }
                 }
@@ -82,20 +85,57 @@ public class Automaton {
         return terminals;
     }
 
-    public List<Rule> toRules(String[] array){
+    public List<Rule> toRules(String[] array) {
         List<Rule> rules = new ArrayList<>();
 
-        for(int i= 0; i < array.length; i++){
+        for (int i = 0; i < array.length; i++) {
             rules.add(getGrammar().findRuleByLabel(array[i]));
         }
         return rules;
     }
 
-    public Stack createPDAfromCFG(Grammar grammar){
+    public Stack createPDAfromCFG(Grammar grammar) {
         Stack stack = new Stack();
 
+        stack.push("$");
+        printPush("$");
+
+
+        for (Rule r : grammar.getRules()) {
+            if (stack.peek() == "$") {
+                stack.push(grammar.getInitTerminal());
+                printPush(grammar.getInitTerminal());
+                if (r.getLeftSide() == stack.peek() && r.getRightSide().length() > 1) {
+                    stack.set(stack.search(grammar.getInitTerminal()), r.getRightSide().charAt(r.getRightSide().length() - 1));
+                    for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
+                        stack.push(r.getRightSide().charAt(i));
+                    }
+
+                }
+            } else {
+                if (r.getRightSide().length() > 1) {
+                    stack.push(r.getLeftSide());
+                    if (r.getLeftSide() == stack.peek() && r.getRightSide().length() > 1) {
+                        stack.set(stack.search(r.getLeftSide()), r.getRightSide().charAt(r.getRightSide().length() - 1));
+                        for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
+                            stack.push(r.getRightSide().charAt(i));
+                        }
+
+                    }
+                }
+            }
+        }
 
         return stack;
+    }
+
+    public void printPush(String mess) {
+        System.out.println("Pushed " + mess);
+    }
+
+
+    public void printPop(String mess) {
+        System.out.println("Popped " + mess);
     }
 
 
