@@ -44,7 +44,7 @@ public class Automaton {
         rules.add(new Rule("r1", "S", "aTb"));
         rules.add(new Rule("r2", "S", "b"));
         rules.add(new Rule("r3", "T", "Ta"));
-        rules.add(new Rule("r4", "S", "ε"));
+        rules.add(new Rule("r4", "T", "ε"));
 
 //        rules.add(new Rule("r1", "S", "AB"));
 ////        rules.add(new Rule("r2", "S", "cAB"));
@@ -100,7 +100,6 @@ public class Automaton {
         stack.push("$");
         printPush("$");
 
-
         for (Rule r : grammar.getRules()) {
             if (stack.peek() == "$") {
                 stack.push(grammar.getInitTerminal());
@@ -114,17 +113,40 @@ public class Automaton {
                 }
             } else {
                 if (r.getRightSide().length() > 1) {
-                    stack.push(r.getLeftSide());
-                    if (r.getLeftSide() == stack.peek() && r.getRightSide().length() > 1) {
-                        stack.set(stack.search(r.getLeftSide()), r.getRightSide().charAt(r.getRightSide().length() - 1));
-                        for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
-                            stack.push(r.getRightSide().charAt(i));
-                        }
-
+//                    stack.push(r.getLeftSide());
+                    //r.getLeftSide() == stack.peek();
+                    System.out.println(r.getRightSide().charAt(r.getRightSide().length() - 1));
+                    System.out.println(stack.search(Character.valueOf(r.getLeftSide().charAt(0))));
+                    stack.set(stack.indexOf(Character.valueOf(r.getLeftSide().charAt(0))), r.getRightSide().charAt(r.getRightSide().length() - 1));
+                    for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
+                        stack.push(r.getRightSide().charAt(i));
                     }
+
                 }
             }
         }
+
+        for (Rule r : grammar.getRules()) {
+            if (r.getRightSide().length() == 1) {
+                if (stack.indexOf(Character.valueOf(r.getLeftSide().charAt(0))) != -1) {
+                    System.out.println(Character.valueOf(r.getLeftSide().charAt(0)));
+                    System.out.println(stack.indexOf(Character.valueOf(r.getLeftSide().charAt(0))));
+                    stack.set(stack.indexOf(Character.valueOf(r.getLeftSide().charAt(0))), r.getRightSide().charAt(0));
+                }
+            }
+        }
+
+        while(stack.size() > 1){
+            for (String t : grammar.getTerminals()) {
+                System.out.println(Character.valueOf(t.charAt(0)));
+                System.out.println(stack.peek());
+                System.out.println(stack.peek().equals(Character.valueOf(t.charAt(0))));
+                    if(stack.peek().equals(Character.valueOf(t.charAt(0)))){
+                        System.out.println(Character.valueOf(t.charAt(0)));
+                       Object returned = stack.pop();
+                    }
+                }
+            }
 
         return stack;
     }
