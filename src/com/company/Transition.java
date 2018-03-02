@@ -7,11 +7,15 @@ public class Transition {
     private String input;
     private String stackInput;
     private String result;
+    private int serialNo;
+    private boolean collection;
 
-    public Transition(String input, String stackInput, String result) {
+    public Transition(String input, String stackInput, String result, int serialNo, boolean collection) {
         this.input = input;
         this.stackInput = stackInput;
         this.result = result;
+        this.serialNo = serialNo;
+        this.collection = collection;
     }
 
     public Transition() {
@@ -39,6 +43,22 @@ public class Transition {
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public int getSerialNo() {
+        return serialNo;
+    }
+
+    public void setSerialNo(int serialNo) {
+        this.serialNo = serialNo;
+    }
+
+    public boolean isCollection() {
+        return collection;
+    }
+
+    public void setCollection(boolean collection) {
+        this.collection = collection;
     }
 }
 

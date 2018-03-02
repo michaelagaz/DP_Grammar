@@ -60,17 +60,25 @@ public class Grammar {
             output.add(rule.getLabel() + ":" + rule.getLeftSide() + "-->" + rule.getRightSide());
         }
 
-        for(String s: output){
+        for (String s : output) {
             System.out.println(s);
         }
     }
 
-    public Rule findRuleByLabel(String label){
-        for(int i = 0; i<getRules().size(); i++){
-            if(getRules().get(i).getLabel().equals(label)){
+    public Rule findRuleByLabel(String label) {
+        for (int i = 0; i < getRules().size(); i++) {
+            if (getRules().get(i).getLabel().equals(label)) {
                 return getRules().get(i);
             }
         }
         return null;
+    }
+
+    public boolean isTerminal(String character) {
+        return (this.getTerminals().contains(character));
+    }
+
+    public boolean isNonTerminal(String character){
+        return(this.getNonTerminals().contains(character));
     }
 }

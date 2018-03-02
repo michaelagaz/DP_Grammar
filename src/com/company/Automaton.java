@@ -16,6 +16,10 @@ public class Automaton {
 
     private static final String EPSILON = "ε";
 
+    private String derivatedWord = "ab";
+
+    private int tserialNo = 0;
+
     public Automaton(Grammar grammar) {
         this.grammar = grammar;
     }
@@ -97,9 +101,12 @@ public class Automaton {
     }
 
 
-    //TODO: return accepted or declined instead of Stack, redo the automaton -> new rules to obey in diary (consultation)
-    public Stack createPDAfromCFG(Grammar grammar) {
+    //TODO: return accepted or declined instead of Stack, redo the automaton -> new rules to obey in diary (consultation),
+    //TODO: TREBA ZACAT S NETERMINALMI!!! -> v loope robit cely cyklus push-> check -> push -> check etc etc.
+
+    public String createPDAfromCFG(Grammar grammar) {
         Stack stack = new Stack();
+        boolean flag = true;
 
         stack.push("$");
         printPush("$");
@@ -107,6 +114,58 @@ public class Automaton {
         List<Transition> allTransitions = makeTransitions(grammar);
 
         stack.push(grammar.getInitTerminal());
+
+        //TU ZACNE LOOP (while)...!!!
+
+        while (flag) {
+            if (grammar.isNonTerminal(String.valueOf(stack.peek()))) {
+                //tu zavolat funkciu, ktora prejde vsetky allTranstions
+                //ak je collection TRUE, treba aby zbehli vsetky pravidla za sebou v ramci jedneho serioveho cisla
+                //ak je stack input transition  == to co je na stacku -> replace prve pravidlo v kolekcii, ostatne push ->
+                //-> zase kontrola vo while cykle
+
+                //dorobit este - ak je viacero transitions v ramci jedneho pravidla (loop) -> bud ako list v Liste,
+                //alebo si nejako oznacit kolekciu, ktore pravidla k sebe patria atd - done
+
+                Stack tempStack = new Stack();
+                tempStack = stack;
+
+                //dorobit vetvenie -> ak S tak si moze vybrat 2 smery kadial ist atd.
+                for (Transition t : getAllSameLetterTransitions(tempStack.peek().toString(),allTransitions)) {
+                    if (t.getStackInput().equals(tempStack.peek())) {
+                        if (t.isCollection() && (t.getSerialNo()== tserialNo)) {
+                            for(Transition tc: getAllTransitionsInCollection(tserialNo, allTransitions)){
+                                if(tc.getStackInput().equals(tempStack.peek()) && !tc.getResult().equals(EPSILON)){
+                                    tempStack.set(tempStack.search(tc.getStackInput()),tc.getResult());
+                                }
+                                else if(tc.getStackInput().equals(EPSILON) && tc.getInput().equals(EPSILON)){
+                                    tempStack.push(tc.getResult());
+                                }
+                            }
+                        }
+                        else{
+                            tserialNo = t.getSerialNo();
+                        }
+
+
+                        if (t.getInput().equals(EPSILON)) {
+
+
+                        }
+                    }
+                }
+            } else if (grammar.isTerminal(String.valueOf(stack.peek()))) {
+                if (stack.peek().equals(derivatedWord.charAt(0))) {
+                    stack.pop();
+                    derivatedWord = deleteFirstChar(derivatedWord);
+
+                } else {
+                    flag = false;
+                    return "declined";
+                    //return declined
+                }
+            }
+        }
 
 //        for (Rule r : grammar.getRules()) {
 //            if (stack.peek() == "$") {
@@ -156,33 +215,38 @@ public class Automaton {
 //                }
 //            }
 
-        return stack;
+        return "accepted";
     }
 
     public List<Transition> makeTransitions(Grammar grammar) {
         List<Transition> transitions = new ArrayList<>();
+        int counter = 0;
+
 
         for (Rule r : grammar.getRules()) {
             if (r.getRightSide().length() > 1) {
-                if (transitions.indexOf(new Transition(EPSILON, r.getLeftSide(), String.valueOf(r.getRightSide().charAt(r.getRightSide().length() - 1)))) == -1) {
-                    transitions.add(new Transition(EPSILON, r.getLeftSide(), String.valueOf(r.getRightSide().charAt(r.getRightSide().length() - 1))));
+                if (transitions.indexOf(new Transition(EPSILON, r.getLeftSide(), String.valueOf(r.getRightSide().charAt(r.getRightSide().length() - 1)), counter, true)) == -1) {
+                    transitions.add(new Transition(EPSILON, r.getLeftSide(), String.valueOf(r.getRightSide().charAt(r.getRightSide().length() - 1)), counter, true));
                 }
                 for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
-                    if (transitions.indexOf(new Transition(EPSILON, EPSILON, String.valueOf(r.getRightSide().charAt(i)))) == -1) {
-                        transitions.add(new Transition(EPSILON, EPSILON, String.valueOf(r.getRightSide().charAt(i))));
+                    if (transitions.indexOf(new Transition(EPSILON, EPSILON, String.valueOf(r.getRightSide().charAt(i)), counter, true)) == -1) {
+                        transitions.add(new Transition(EPSILON, EPSILON, String.valueOf(r.getRightSide().charAt(i)), counter, true));
                     }
 
                 }
+                counter++;
             } else {
-                if (transitions.indexOf(new Transition(EPSILON, r.getLeftSide(), r.getRightSide())) == -1) {
-                    transitions.add(new Transition(EPSILON, r.getLeftSide(), r.getRightSide()));
+                if (transitions.indexOf(new Transition(EPSILON, r.getLeftSide(), r.getRightSide(), counter, false)) == -1) {
+                    transitions.add(new Transition(EPSILON, r.getLeftSide(), r.getRightSide(), counter, false));
+                    counter++;
                 }
             }
         }
 
         for (String terminal : grammar.getTerminals()) {
-            if (transitions.indexOf(new Transition(terminal, terminal, EPSILON)) == -1 && !terminal.equals(EPSILON)) {
-                transitions.add(new Transition(terminal, terminal, EPSILON));
+            if (transitions.indexOf(new Transition(terminal, terminal, EPSILON, counter, false)) == -1 && !terminal.equals(EPSILON)) {
+                transitions.add(new Transition(terminal, terminal, EPSILON, counter, false));
+                counter++;
             }
         }
 
@@ -197,5 +261,34 @@ public class Automaton {
     public void printPop(String mess) {
         System.out.println("Popped " + mess);
     }
-    
+
+    public String deleteFirstChar(String word) {
+        StringBuilder sb = new StringBuilder(word);
+        sb.deleteCharAt(0);
+        String resultString = sb.toString();
+        return resultString;
+    }
+
+    public List<Transition> getAllTransitionsInCollection(int serialNo, List<Transition> transitions){
+        List<Transition> allTransitionInCollection = new ArrayList<>();
+
+        for(Transition t : transitions){
+            if(t.getSerialNo() == serialNo){
+                allTransitionInCollection.add(t);
+            }
+        }
+        return allTransitionInCollection;
+    }
+
+    public List<Transition> getAllSameLetterTransitions(String beginLetter, List<Transition> transitions){
+        List<Transition> allTransition = new ArrayList<>();
+
+        for(Transition t : transitions){
+            if(t.getStackInput() == beginLetter){
+                allTransition.add(t);
+            }
+        }
+        return allTransition;
+    }
+
 }
