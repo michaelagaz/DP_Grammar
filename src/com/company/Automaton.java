@@ -18,7 +18,12 @@ public class Automaton {
 
     private String derivatedWord = "ab";
 
+    private int indexOption = 0;
+
     private int tserialNo = 0;
+    List<String> tempstack;
+
+    int pos;
 
     public Automaton(Grammar grammar) {
         this.grammar = grammar;
@@ -31,7 +36,8 @@ public class Automaton {
         System.out.println("Terminals: " + addTerminals(addRules()));
         grammar.getRulesOutput(addRules());
 
-        createPDAfromCFG(grammar);
+//        createPDAfromCFG(grammar);
+        mainFunction(grammar);
     }
 
 
@@ -104,9 +110,57 @@ public class Automaton {
     //TODO: return accepted or declined instead of Stack, redo the automaton -> new rules to obey in diary (consultation),
     //TODO: TREBA ZACAT S NETERMINALMI!!! -> v loope robit cely cyklus push-> check -> push -> check etc etc.
 
+    public String mainFunction(Grammar grammar) {
+//        Stack stack = new Stack();
+//
+//        stack.push("$");
+//        printPush("$");
+
+        List<String> stack = new ArrayList();
+
+        stack.add("$");
+        stack.add(grammar.getInitTerminal());
+
+        for (pos = 0; pos < derivatedWord.length(); pos++) {
+            if (checkFunction(grammar, stack) && pos == derivatedWord.length() - 1 && stack.get(pos).equals("$")) {
+                return "accepted";
+            }
+        }
+
+        return "declined";
+    }
+
+
+    public boolean checkFunction(Grammar grammar, List<String> stack) {
+        tempstack = new ArrayList<>();
+        tempstack = cloneStack(stack);
+        if (grammar.isTerminal(String.valueOf(stack.get((stack.size() - 1) - pos))) && String.valueOf(derivatedWord.charAt(pos)).equals(stack.get((stack.size() - 1) - pos))) {
+            pos++;
+            return true;
+        } else if (grammar.isNonTerminal(String.valueOf(stack.get((stack.size() - 1) - pos)))) {
+
+            String wordBackWard = getWordBackWards(getAllSameRules(grammar.getRules(), String.valueOf(tempstack.get((tempstack.size() - 1) - pos))).get(indexOption).getRightSide());
+            tempstack.remove(String.valueOf(tempstack.get((tempstack.size() - 1) - pos)));
+            for (int j = 0; j < wordBackWard.length(); j++) {
+                tempstack.add(String.valueOf(wordBackWard.charAt(j)));
+            }
+//            if (checkFunction(grammar, tempstack)) {
+//                pos++;
+//            }
+            if(!checkFunction(grammar, tempstack)){
+                tempstack = cloneStack(stack);
+                indexOption++;
+            }
+
+
+        }
+        return false;
+    }
+
     public String createPDAfromCFG(Grammar grammar) {
         Stack stack = new Stack();
         boolean flag = true;
+        boolean flag2 = true;
 
         stack.push("$");
         printPush("$");
@@ -127,29 +181,36 @@ public class Automaton {
                 //dorobit este - ak je viacero transitions v ramci jedneho pravidla (loop) -> bud ako list v Liste,
                 //alebo si nejako oznacit kolekciu, ktore pravidla k sebe patria atd - done
 
-                Stack tempStack = new Stack();
-                tempStack = stack;
 
                 //dorobit vetvenie -> ak S tak si moze vybrat 2 smery kadial ist atd.
-                for (Transition t : getAllSameLetterTransitions(tempStack.peek().toString(),allTransitions)) {
-                    if (t.getStackInput().equals(tempStack.peek())) {
-                        if (t.isCollection() && (t.getSerialNo()== tserialNo)) {
-                            for(Transition tc: getAllTransitionsInCollection(tserialNo, allTransitions)){
-                                if(tc.getStackInput().equals(tempStack.peek()) && !tc.getResult().equals(EPSILON)){
-                                    tempStack.set(tempStack.search(tc.getStackInput()),tc.getResult());
+                while (flag2) {
+                    Stack tempStack = new Stack();
+                    tempStack = (Stack) stack.clone();
+                    for (Transition t : getAllSameLetterTransitions(stack.peek().toString(), allTransitions)) {
+                        if (t.getStackInput().equals(tempStack.peek())) {
+                            if (t.isCollection() && (t.getSerialNo() == tserialNo)) {
+                                for (Transition tc : getAllTransitionsInCollection(tserialNo, allTransitions)) {
+                                    if (tc.getStackInput().equals(tempStack.peek()) && !tc.getResult().equals(EPSILON)) {
+                                        tempStack.set(tempStack.search(tc.getStackInput()), tc.getResult());
+                                    } else if (tc.getStackInput().equals(EPSILON) && tc.getInput().equals(EPSILON)) {
+                                        tempStack.push(tc.getResult());
+                                    }
                                 }
-                                else if(tc.getStackInput().equals(EPSILON) && tc.getInput().equals(EPSILON)){
-                                    tempStack.push(tc.getResult());
-                                }
+                            } else {
+                                tserialNo = t.getSerialNo();
                             }
                         }
-                        else{
-                            tserialNo = t.getSerialNo();
-                        }
+                        if (grammar.isTerminal(String.valueOf(tempStack.peek()))) {
+                            if (tempStack.peek().equals(String.valueOf(derivatedWord.charAt(0)))) {
+                                tempStack.pop();
+                                derivatedWord = deleteFirstChar(derivatedWord);
 
-
-                        if (t.getInput().equals(EPSILON)) {
-
+                            } else {
+//                                flag2 = false;
+//                                break;
+                                //return declined
+                            }
+                        } else {
 
                         }
                     }
@@ -269,26 +330,54 @@ public class Automaton {
         return resultString;
     }
 
-    public List<Transition> getAllTransitionsInCollection(int serialNo, List<Transition> transitions){
+    public List<Transition> getAllTransitionsInCollection(int serialNo, List<Transition> transitions) {
         List<Transition> allTransitionInCollection = new ArrayList<>();
 
-        for(Transition t : transitions){
-            if(t.getSerialNo() == serialNo){
+        for (Transition t : transitions) {
+            if (t.getSerialNo() == serialNo) {
                 allTransitionInCollection.add(t);
             }
         }
         return allTransitionInCollection;
     }
 
-    public List<Transition> getAllSameLetterTransitions(String beginLetter, List<Transition> transitions){
+    public List<Transition> getAllSameLetterTransitions(String beginLetter, List<Transition> transitions) {
         List<Transition> allTransition = new ArrayList<>();
 
-        for(Transition t : transitions){
-            if(t.getStackInput() == beginLetter){
+        for (Transition t : transitions) {
+            if (t.getStackInput() == beginLetter) {
                 allTransition.add(t);
             }
         }
         return allTransition;
     }
 
+    public List<Rule> getAllSameRules(List<Rule> rules, String letter) {
+        List<Rule> sortedRules = new ArrayList<>();
+        for (Rule r : rules) {
+            if (r.getLeftSide().equals(letter)) {
+                sortedRules.add(r);
+            }
+        }
+
+        return sortedRules;
+    }
+
+    public String getWordBackWards(String word) {
+        String temp = "";
+
+        for (int i = word.length() - 1; i >= 0; i--) {
+            temp += String.valueOf(word.charAt(i));
+        }
+        return temp;
+    }
+
+    public List<String> cloneStack(List<String> stack) {
+        List<String> temp = new ArrayList<>();
+        for (String s : stack) {
+            temp.add(s);
+        }
+
+        return temp;
+    }
 }
