@@ -21,7 +21,7 @@ public class Automaton {
     private int indexOption = 0;
 
     private int tserialNo = 0;
-    List<String> tempstack;
+    Stack tempstack;
 
     int pos;
 
@@ -55,7 +55,7 @@ public class Automaton {
 
         rules.add(new Rule("r1", "S", "aTb"));
         rules.add(new Rule("r2", "S", "b"));
-        rules.add(new Rule("r3", "T", "Ta"));
+        rules.add(new Rule("r3", "T", "a"));
         rules.add(new Rule("r4", "T", "ε"));
 
 //        rules.add(new Rule("r1", "S", "AB"));
@@ -116,44 +116,59 @@ public class Automaton {
 //        stack.push("$");
 //        printPush("$");
 
-        List<String> stack = new ArrayList();
+        Stack stack = new Stack();
 
-        stack.add("$");
-        stack.add(grammar.getInitTerminal());
+        stack.push("$");
+        stack.push(grammar.getInitTerminal());
 
-        for (pos = 0; pos < derivatedWord.length(); pos++) {
-            if (checkFunction(grammar, stack) && pos == derivatedWord.length() - 1 && stack.get(pos).equals("$")) {
-                return "accepted";
+//       while (pos <= derivatedWord.length() - 1) {
+            if (!checkFunction(grammar, stack)) {
+                return "declined";
             }
-        }
+//        }
 
-        return "declined";
+        return "accepted";
     }
 
 
-    public boolean checkFunction(Grammar grammar, List<String> stack) {
-        tempstack = new ArrayList<>();
-        tempstack = cloneStack(stack);
-        if (grammar.isTerminal(String.valueOf(stack.get((stack.size() - 1) - pos))) && String.valueOf(derivatedWord.charAt(pos)).equals(stack.get((stack.size() - 1) - pos))) {
-            pos++;
-            return true;
-        } else if (grammar.isNonTerminal(String.valueOf(stack.get((stack.size() - 1) - pos)))) {
-
-            String wordBackWard = getWordBackWards(getAllSameRules(grammar.getRules(), String.valueOf(tempstack.get((tempstack.size() - 1) - pos))).get(indexOption).getRightSide());
-            tempstack.remove(String.valueOf(tempstack.get((tempstack.size() - 1) - pos)));
-            for (int j = 0; j < wordBackWard.length(); j++) {
-                tempstack.add(String.valueOf(wordBackWard.charAt(j)));
+    public boolean checkFunction(Grammar grammar, Stack stack) {
+       tempstack = new Stack();
+        tempstack = (Stack) stack.clone();
+        if (grammar.isTerminal(String.valueOf(tempstack.peek())) && String.valueOf(derivatedWord.charAt(pos)).equals(tempstack.peek())) {
+           tempstack.pop();
+           if(pos == derivatedWord.length() - 1){
+               if(tempstack.peek().equals("$")){
+                   return true;
+               }
+           }
+           else{
+               pos++;
+               return true;
+           }
+        } else if (grammar.isNonTerminal(String.valueOf(tempstack.peek()))) {
+            while(indexOption!=getAllSameRules(grammar.getRules(),String.valueOf(tempstack.peek())).size()-1 ) {
+                String wordBackWard = getWordBackWards(getAllSameRules(grammar.getRules(), String.valueOf(tempstack.peek())).get(indexOption).getRightSide());
+                tempstack.remove(String.valueOf(tempstack.peek()));
+                for (int j = 0; j < wordBackWard.length(); j++) {
+                    if(!String.valueOf(wordBackWard.charAt(j)).equals(EPSILON)) {
+                        tempstack.push(String.valueOf(wordBackWard.charAt(j)));
+                    }
+                }
+                if(stack.peek().equals(tempstack.peek())){
+                    return false;
+                }
+                else {
+                    if (!checkFunction(grammar, tempstack)) {
+                        tempstack = (Stack) stack.clone();
+                        indexOption++;
+                    }
+                }
             }
 //            if (checkFunction(grammar, tempstack)) {
 //                pos++;
 //            }
-            if(!checkFunction(grammar, tempstack)){
-                tempstack = cloneStack(stack);
-                indexOption++;
-            }
-
-
         }
+
         return false;
     }
 
