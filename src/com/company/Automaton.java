@@ -37,7 +37,9 @@ public class Automaton {
         grammar.getRulesOutput(addRules());
 
 //        createPDAfromCFG(grammar);
-        mainFunction(grammar);
+//        mainFunction(grammar);
+
+        getFollow(grammar, "B");
     }
 
 
@@ -53,11 +55,23 @@ public class Automaton {
     public List<Rule> addRules() {
         List<Rule> rules = new ArrayList<>();
 
-        rules.add(new Rule("r1", "S", "aTb"));
-        rules.add(new Rule("r2", "S", "b"));
-        rules.add(new Rule("r3", "T", "a"));
-        rules.add(new Rule("r4", "T", "ε"));
+        rules.add(new Rule("r1", "S", "Cc"));
+        rules.add(new Rule("r3", "A", "b"));
+        rules.add(new Rule("r4", "A", EPSILON));
+        rules.add(new Rule("r5", "B", "cS"));
+        rules.add(new Rule("r6", "B", EPSILON));
+        rules.add(new Rule("r7", "C", "AcCb"));
+        rules.add(new Rule("r8", "C", "aB"));
 
+
+//testing grammar from youtube (cfg to pda)
+//        rules.add(new Rule("r1", "S", "aTb"));
+//        rules.add(new Rule("r2", "S", "b"));
+//        rules.add(new Rule("r3", "T", "a"));
+//        rules.add(new Rule("r4", "T", "ε"));
+
+
+        //testing grammar from article
 //        rules.add(new Rule("r1", "S", "AB"));
 ////        rules.add(new Rule("r2", "S", "cAB"));
 //        rules.add(new Rule("r3", "A", "aAb"));
@@ -122,9 +136,9 @@ public class Automaton {
         stack.push(grammar.getInitTerminal());
 
 //       while (pos <= derivatedWord.length() - 1) {
-            if (!checkFunction(grammar, stack)) {
-                return "declined";
-            }
+        if (!checkFunction(grammar, stack)) {
+            return "declined";
+        }
 //        }
 
         return "accepted";
@@ -132,32 +146,30 @@ public class Automaton {
 
 
     public boolean checkFunction(Grammar grammar, Stack stack) {
-       tempstack = new Stack();
+        tempstack = new Stack();
         tempstack = (Stack) stack.clone();
         if (grammar.isTerminal(String.valueOf(tempstack.peek())) && String.valueOf(derivatedWord.charAt(pos)).equals(tempstack.peek())) {
-           tempstack.pop();
-           if(pos == derivatedWord.length() - 1){
-               if(tempstack.peek().equals("$")){
-                   return true;
-               }
-           }
-           else{
-               pos++;
-               return true;
-           }
+            tempstack.pop();
+            if (pos == derivatedWord.length() - 1) {
+                if (tempstack.peek().equals("$")) {
+                    return true;
+                }
+            } else {
+                pos++;
+                return true;
+            }
         } else if (grammar.isNonTerminal(String.valueOf(tempstack.peek()))) {
-            while(indexOption!=getAllSameRules(grammar.getRules(),String.valueOf(tempstack.peek())).size()-1 ) {
+            while (indexOption != getAllSameRules(grammar.getRules(), String.valueOf(tempstack.peek())).size() - 1) {
                 String wordBackWard = getWordBackWards(getAllSameRules(grammar.getRules(), String.valueOf(tempstack.peek())).get(indexOption).getRightSide());
                 tempstack.remove(String.valueOf(tempstack.peek()));
                 for (int j = 0; j < wordBackWard.length(); j++) {
-                    if(!String.valueOf(wordBackWard.charAt(j)).equals(EPSILON)) {
+                    if (!String.valueOf(wordBackWard.charAt(j)).equals(EPSILON)) {
                         tempstack.push(String.valueOf(wordBackWard.charAt(j)));
                     }
                 }
-                if(stack.peek().equals(tempstack.peek())){
+                if (stack.peek().equals(tempstack.peek())) {
                     return false;
-                }
-                else {
+                } else {
                     if (!checkFunction(grammar, tempstack)) {
                         tempstack = (Stack) stack.clone();
                         indexOption++;
@@ -394,5 +406,74 @@ public class Automaton {
         }
 
         return temp;
+    }
+
+    public List<String> getFirst(Grammar grammar, String nonTerminal) {
+        List<String> firstTerminals = new ArrayList<>();
+
+        for (int i = 0; i < nonTerminal.length(); i++) {
+            if (grammar.isTerminal(String.valueOf(nonTerminal.charAt(0)))) {
+                firstTerminals.add(String.valueOf(nonTerminal.charAt(0)));
+                return firstTerminals;
+            } else if (grammar.isNonTerminal(String.valueOf(nonTerminal.charAt(i)))) {
+                for (Rule r : grammar.getRules()) {
+                    if (r.getLeftSide().equals(nonTerminal)) {
+                        if (grammar.isTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
+                            if (!firstTerminals.contains((String.valueOf(r.getRightSide().charAt(0))))) {
+                                firstTerminals.add(String.valueOf(r.getRightSide().charAt(0)));
+                            }
+                        }
+                        if (grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
+                            for (String str : getFirst(grammar, String.valueOf(r.getRightSide().charAt(0)))) {
+                                if (str.equals(EPSILON) && grammar.isTerminal(String.valueOf(r.getRightSide().charAt(1)))) {
+                                    if (!firstTerminals.contains(String.valueOf(r.getRightSide().charAt(1)))) {
+                                        firstTerminals.add(String.valueOf(r.getRightSide().charAt(1)));
+                                    }
+                                } else if (!firstTerminals.contains(str)) {
+                                    firstTerminals.add(str);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return firstTerminals;
+    }
+
+    public List<String> getFollow(Grammar grammar, String nonTerminal) {
+        List<String> followTerminals = new ArrayList<>();
+
+        if (grammar.isNonTerminal(String.valueOf(nonTerminal))) {
+            for (Rule r : grammar.getRules()) {
+                if (r.getRightSide().contains(nonTerminal)) {
+                    for (int i = 0; i < r.getRightSide().length(); i++) {
+                        if (String.valueOf(r.getRightSide().charAt(i)).equals(nonTerminal)) {
+                            if (i < r.getRightSide().length() - 1) {
+                                if (grammar.isTerminal(String.valueOf(r.getRightSide().charAt(i + 1)))) {
+                                    if (!followTerminals.contains(String.valueOf(r.getRightSide().charAt(i + 1)))) {
+                                        followTerminals.add(String.valueOf(r.getRightSide().charAt(i + 1)));
+                                    }
+                                }
+                                else if(grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(i + 1)))){
+                                    for(String str: getFollow(grammar, String.valueOf(r.getRightSide().charAt(i + 1)))){
+                                        if(!followTerminals.contains(str)){
+                                            followTerminals.add(str);
+                                        }
+                                    }
+                                }
+                            } else {
+                                if (!followTerminals.contains(EPSILON)) {
+                                    followTerminals.add(EPSILON);
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+        return followTerminals;
     }
 }
