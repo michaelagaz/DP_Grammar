@@ -16,7 +16,7 @@ public class Automaton {
 
     private static final String EPSILON = "ε";
 
-    private String derivatedWord = "ab";
+    private String derivatedWord = "ba";
 
     private int indexOption = 0;
 
@@ -39,7 +39,10 @@ public class Automaton {
 //        createPDAfromCFG(grammar);
 //        mainFunction(grammar);
 
-        getFollow(grammar, "B");
+//        getFirst(grammar, "A");
+//        getFollow(grammar, "S");
+
+        doMainFunction(grammar);
     }
 
 
@@ -58,9 +61,9 @@ public class Automaton {
         rules.add(new Rule("r1", "S", "Cc"));
         rules.add(new Rule("r3", "A", "b"));
         rules.add(new Rule("r4", "A", EPSILON));
-        rules.add(new Rule("r5", "B", "cS"));
+        rules.add(new Rule("r5", "B", "dS"));
         rules.add(new Rule("r6", "B", EPSILON));
-        rules.add(new Rule("r7", "C", "AcCb"));
+        rules.add(new Rule("r7", "C", "AeCf"));
         rules.add(new Rule("r8", "C", "aB"));
 
 
@@ -125,11 +128,6 @@ public class Automaton {
     //TODO: TREBA ZACAT S NETERMINALMI!!! -> v loope robit cely cyklus push-> check -> push -> check etc etc.
 
     public String mainFunction(Grammar grammar) {
-//        Stack stack = new Stack();
-//
-//        stack.push("$");
-//        printPush("$");
-
         Stack stack = new Stack();
 
         stack.push("$");
@@ -182,6 +180,35 @@ public class Automaton {
         }
 
         return false;
+    }
+
+
+    public String doMainFunction(Grammar grammar) {
+        Stack stack = new Stack();
+
+        stack.push("$");
+//        stack.push(grammar.getInitTerminal());
+        stack.push("A");
+        while (!stack.peek().equals("$")) {
+            Rule rule = predict(grammar, String.valueOf(stack.peek()));
+            if(rule.equals(null)){
+                return "declined";
+            }
+            else{
+                stack.pop();
+                for (int i = 0; i < getWordBackWards(rule.getRightSide()).length(); i++) {
+                    stack.push(String.valueOf(getWordBackWards(rule.getRightSide()).charAt(i)));
+                }
+               stack.pop();
+                derivatedWord = deleteFirstChar(derivatedWord);
+            }
+
+        }
+        if(derivatedWord.length()==0){
+            return "accepted";
+        }
+
+       return "declined";
     }
 
     public String createPDAfromCFG(Grammar grammar) {
@@ -357,6 +384,13 @@ public class Automaton {
         return resultString;
     }
 
+    public String deleteCharAt(String word, int index) {
+        StringBuilder sb = new StringBuilder(word);
+        sb.deleteCharAt(index);
+        String resultString = sb.toString();
+        return resultString;
+    }
+
     public List<Transition> getAllTransitionsInCollection(int serialNo, List<Transition> transitions) {
         List<Transition> allTransitionInCollection = new ArrayList<>();
 
@@ -408,30 +442,40 @@ public class Automaton {
         return temp;
     }
 
-    public List<String> getFirst(Grammar grammar, String nonTerminal) {
-        List<String> firstTerminals = new ArrayList<>();
+    public List<PredictRule> getFirst(Grammar grammar, String nonTerminal) {
+        List<PredictRule> firstTerminals = new ArrayList<>();
 
-        for (int i = 0; i < nonTerminal.length(); i++) {
-            if (grammar.isTerminal(String.valueOf(nonTerminal.charAt(0)))) {
-                firstTerminals.add(String.valueOf(nonTerminal.charAt(0)));
-                return firstTerminals;
-            } else if (grammar.isNonTerminal(String.valueOf(nonTerminal.charAt(i)))) {
-                for (Rule r : grammar.getRules()) {
-                    if (r.getLeftSide().equals(nonTerminal)) {
-                        if (grammar.isTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
-                            if (!firstTerminals.contains((String.valueOf(r.getRightSide().charAt(0))))) {
-                                firstTerminals.add(String.valueOf(r.getRightSide().charAt(0)));
-                            }
-                        }
-                        if (grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
-                            for (String str : getFirst(grammar, String.valueOf(r.getRightSide().charAt(0)))) {
-                                if (str.equals(EPSILON) && grammar.isTerminal(String.valueOf(r.getRightSide().charAt(1)))) {
-                                    if (!firstTerminals.contains(String.valueOf(r.getRightSide().charAt(1)))) {
-                                        firstTerminals.add(String.valueOf(r.getRightSide().charAt(1)));
+        int i = 0;
+        if (grammar.isTerminal(String.valueOf(nonTerminal.charAt(0)))) {
+            firstTerminals.add(new PredictRule(String.valueOf(nonTerminal.charAt(0)), null));
+            return firstTerminals;
+        } else if (grammar.isNonTerminal(String.valueOf(nonTerminal.charAt(0)))) {
+            for (Rule r : grammar.getRules()) {
+                if (r.getLeftSide().equals(String.valueOf(nonTerminal.charAt(0)))) {
+                    if (grammar.isTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
+                        if (String.valueOf(r.getRightSide().charAt(0)).equals(EPSILON)) {
+                            if (i < nonTerminal.length() - 1) {
+                                i++;
+                                for (PredictRule str : getFirst(grammar, String.valueOf(nonTerminal.charAt(i)))) {
+                                    if (!firstTerminals.contains(str)) {
+                                        firstTerminals.add(str);
                                     }
-                                } else if (!firstTerminals.contains(str)) {
-                                    firstTerminals.add(str);
                                 }
+                            } else {
+                                firstTerminals.add(new PredictRule(EPSILON, r));
+                            }
+                        } else if (!firstTerminals.contains(new PredictRule(String.valueOf(r.getRightSide().charAt(0)), r))) {
+                            firstTerminals.add(new PredictRule(String.valueOf(r.getRightSide().charAt(0)), r));
+                        }
+                    }
+                    if (grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(0)))) {
+                        for (PredictRule str : getFirst(grammar, String.valueOf(r.getRightSide().charAt(0)))) {
+                            if (str.getTerminal().equals(EPSILON) && grammar.isTerminal(String.valueOf(r.getRightSide().charAt(1)))) {
+                                if (!firstTerminals.contains(new PredictRule(String.valueOf(r.getRightSide().charAt(1)), r))) {
+                                    firstTerminals.add(new PredictRule(String.valueOf(r.getRightSide().charAt(1)), r));
+                                }
+                            } else if (!firstTerminals.contains(str)) {
+                                firstTerminals.add(str);
                             }
                         }
                     }
@@ -441,32 +485,32 @@ public class Automaton {
         return firstTerminals;
     }
 
-    public List<String> getFollow(Grammar grammar, String nonTerminal) {
-        List<String> followTerminals = new ArrayList<>();
-
-        if (grammar.isNonTerminal(String.valueOf(nonTerminal))) {
+    public List<PredictRule> getFollow(Grammar grammar, String nonTerminal) {
+        List<PredictRule> followTerminals = new ArrayList<>();
+        int counter = 0;
+        if (grammar.isNonTerminal(String.valueOf(nonTerminal.charAt(0)))) {
             for (Rule r : grammar.getRules()) {
-                if (r.getRightSide().contains(nonTerminal)) {
+                if (r.getRightSide().contains(String.valueOf(nonTerminal.charAt(0)))) {
                     for (int i = 0; i < r.getRightSide().length(); i++) {
-                        if (String.valueOf(r.getRightSide().charAt(i)).equals(nonTerminal)) {
-                            if (i < r.getRightSide().length() - 1) {
+                        if (String.valueOf(r.getRightSide().charAt(i)).equals(String.valueOf(nonTerminal.charAt(0)))) {
+                            if (i + 1 < r.getRightSide().length() - 1) {
                                 if (grammar.isTerminal(String.valueOf(r.getRightSide().charAt(i + 1)))) {
-                                    if (!followTerminals.contains(String.valueOf(r.getRightSide().charAt(i + 1)))) {
-                                        followTerminals.add(String.valueOf(r.getRightSide().charAt(i + 1)));
+                                    if (!followTerminals.contains(new PredictRule(String.valueOf(r.getRightSide().charAt(i + 1)), r))) {
+                                        followTerminals.add(new PredictRule(String.valueOf(r.getRightSide().charAt(i + 1)), r));
                                     }
-                                }
-                                else if(grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(i + 1)))){
-                                    for(String str: getFollow(grammar, String.valueOf(r.getRightSide().charAt(i + 1)))){
-                                        if(!followTerminals.contains(str)){
+                                } else if (grammar.isNonTerminal(String.valueOf(r.getRightSide().charAt(i + 1)))) {
+                                    for (PredictRule str : getFollow(grammar, String.valueOf(r.getRightSide().charAt(i + 1)))) {
+                                        if (!followTerminals.contains(str)) {
                                             followTerminals.add(str);
                                         }
                                     }
                                 }
-                            } else {
-                                if (!followTerminals.contains(EPSILON)) {
-                                    followTerminals.add(EPSILON);
-                                }
                             }
+//                            else {
+//                                if (!followTerminals.contains(EPSILON)) {
+//                                    followTerminals.add(EPSILON);
+//                                }
+//                            }
                         }
 
                     }
@@ -475,5 +519,16 @@ public class Automaton {
         }
 
         return followTerminals;
+    }
+
+    public Rule predict(Grammar grammar, String nonTerminal) {
+        List<PredictRule> predictRules = getFirst(grammar, nonTerminal);
+
+        for (PredictRule rule : predictRules) {
+            if (rule.getTerminal().equals(String.valueOf(derivatedWord.charAt(0)))) {
+                return rule.getRule();
+            }
+        }
+        return null;
     }
 }
