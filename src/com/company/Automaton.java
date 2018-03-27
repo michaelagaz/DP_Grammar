@@ -16,14 +16,22 @@ public class Automaton {
 
     private static final String EPSILON = "ε";
 
-    private String derivatedWord = "ba";
+    private String derivatedWord = "bb";
 
     private int indexOption = 0;
+
+    List<Rule> usedRules = new ArrayList<>();
 
     private int tserialNo = 0;
     Stack tempstack;
 
     int pos;
+
+    //number of Terminals, nonTerminals and rules for one nonTerminal -> used for generating grammar
+    int numGenTerm = 2;
+    int numGenNonTerm = 2;
+    int numRulesPerNonTerm = 2;
+
 
     public Automaton(Grammar grammar) {
         this.grammar = grammar;
@@ -43,8 +51,10 @@ public class Automaton {
 //        getFollow(grammar, "S");
 
         doMainFunction(grammar);
+        List<String> terminals = generateTerminals(numGenTerm);
+        List<String> nonTerminals = generateNonTerminals(numGenNonTerm);
+        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), "r1" ,"r3");
     }
-
 
     public Grammar getGrammar() {
         return grammar;
@@ -61,7 +71,7 @@ public class Automaton {
         rules.add(new Rule("r1", "S", "Cc"));
         rules.add(new Rule("r3", "A", "b"));
         rules.add(new Rule("r4", "A", EPSILON));
-        rules.add(new Rule("r5", "B", "dS"));
+        rules.add(new Rule("r5", "B", "aS"));
         rules.add(new Rule("r6", "B", EPSILON));
         rules.add(new Rule("r7", "C", "AeCf"));
         rules.add(new Rule("r8", "C", "aB"));
@@ -124,9 +134,6 @@ public class Automaton {
     }
 
 
-    //TODO: return accepted or declined instead of Stack, redo the automaton -> new rules to obey in diary (consultation),
-    //TODO: TREBA ZACAT S NETERMINALMI!!! -> v loope robit cely cyklus push-> check -> push -> check etc etc.
-
     public String mainFunction(Grammar grammar) {
         Stack stack = new Stack();
 
@@ -185,12 +192,15 @@ public class Automaton {
 
     public String doMainFunction(Grammar grammar) {
         Stack stack = new Stack();
+        usedRules = new ArrayList<>();
 
         stack.push("$");
 //        stack.push(grammar.getInitTerminal());
         stack.push("A");
+        stack.push("A");
         while (!stack.peek().equals("$")) {
             Rule rule = predict(grammar, String.valueOf(stack.peek()));
+            usedRules.add(rule);
             if(rule.equals(null)){
                 return "declined";
             }
@@ -523,12 +533,80 @@ public class Automaton {
 
     public Rule predict(Grammar grammar, String nonTerminal) {
         List<PredictRule> predictRules = getFirst(grammar, nonTerminal);
+        List<Rule> rules = new ArrayList<>();
 
         for (PredictRule rule : predictRules) {
             if (rule.getTerminal().equals(String.valueOf(derivatedWord.charAt(0)))) {
-                return rule.getRule();
+                rules.add(rule.getRule());
             }
         }
-        return null;
+       return rules.size() == 1 ? rules.get(0) : null;
     }
+
+    public String getUsedRulesToLabels(List<Rule> rules){
+        String labels = "";
+        for(Rule r: rules){
+            labels += r.getLabel();
+        }
+        return labels;
+    }
+
+    public String getEncryptedWord(String word, String label0, String label1){
+        String encrypted = "";
+            encrypted = word.replaceAll(label0, "0");
+            encrypted = word.replaceAll(label1, "1");
+
+        return encrypted;
+    }
+
+    //GENERATOR OF GRAMMAR
+    public Grammar generateGrammar(){
+        return new Grammar();
+    }
+
+    public List<String> generateTerminals(int number){
+        List<String> terminals = new ArrayList<>();
+
+        for(int i = 97; i < 97 + number; i++){
+           terminals.add(Character.toString ((char) i));
+        }
+        return terminals;
+    }
+
+    public List<String> generateNonTerminals(int number){
+        List<String> nonTerminals = new ArrayList<>();
+
+        //initNonTerminal - static
+        nonTerminals.add("S");
+
+        for(int i = 65; i < 65 + number; i++){
+            if(!nonTerminals.contains(Character.toString ((char) i))){
+                nonTerminals.add(Character.toString ((char) i));
+            }
+        }
+        return nonTerminals;
+    }
+
+    public List<Rule> generateRules(List<String> nonTerminals, List<String> terminals){
+        List<Rule> generatedRules = new ArrayList<>();
+        int counter = 0;
+        for(String str : nonTerminals){
+            Rule rule = new Rule();
+            rule.setLeftSide(str);
+            rule.setLabel("r"+counter);
+
+
+        }
+
+        return generatedRules;
+    }
+
+    public String generateRightSide(List<String> nonTerminals, List<String> terminals){
+        String rightSide = "";
+        
+
+        return rightSide;
+    }
+
+
 }
