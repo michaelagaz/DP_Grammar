@@ -59,13 +59,21 @@ public class Automaton {
         unusedNonTerminals = new ArrayList<>(nonTerminals);
 
         List<Rule> rules = generateRules(nonTerminals, terminals, numRulesPerNonTerm);
-        Rule labelZero =  pickLabelForZero(rules);
+        Rule labelZero = pickLabelForZero(rules);
         Rule labelOne = pickLabelForOne(rules, labelZero);
-        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel() ,labelOne.getLabel());
+        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel(), labelOne.getLabel());
 
-        rules = generateExtraRules(rules,labelZero, labelOne, terminals, nonTerminals);
+        rules = generateExtraRules(rules, labelZero, labelOne, terminals, nonTerminals);
+        Grammar grammarGen = new Grammar();
+        grammarGen.setInitTerminal("S");
+        grammarGen.setTerminals(terminals);
+        grammarGen.setNonTerminals(nonTerminals);
+        grammarGen.setRules(rules);
 
         System.out.println(rules);
+
+        Grammar newGrammar = createSpecialGrammar(grammarGen);
+        System.out.println(newGrammar);
     }
 
     public Grammar getGrammar() {
@@ -195,24 +203,23 @@ public class Automaton {
         while (!stack.peek().equals("$")) {
             Rule rule = predict(grammar, String.valueOf(stack.peek()));
             usedRules.add(rule);
-            if(rule.equals(null)){
+            if (rule.equals(null)) {
                 return "declined";
-            }
-            else{
+            } else {
                 stack.pop();
                 for (int i = 0; i < getWordBackWards(rule.getRightSide()).length(); i++) {
                     stack.push(String.valueOf(getWordBackWards(rule.getRightSide()).charAt(i)));
                 }
-               stack.pop();
+                stack.pop();
                 derivatedWord = deleteFirstChar(derivatedWord);
             }
 
         }
-        if(derivatedWord.length()==0){
+        if (derivatedWord.length() == 0) {
             return "accepted";
         }
 
-       return "declined";
+        return "declined";
     }
 
     public String createPDAfromCFG(Grammar grammar) {
@@ -534,61 +541,61 @@ public class Automaton {
                 rules.add(rule.getRule());
             }
         }
-       return rules.size() == 1 ? rules.get(0) : null;
+        return rules.size() == 1 ? rules.get(0) : null;
     }
 
-    public String getUsedRulesToLabels(List<Rule> rules){
+    public String getUsedRulesToLabels(List<Rule> rules) {
         String labels = "";
-        for(Rule r: rules){
+        for (Rule r : rules) {
             labels += r.getLabel();
         }
         return labels;
     }
 
-    public String getEncryptedWord(String word, String label0, String label1){
+    public String getEncryptedWord(String word, String label0, String label1) {
         String encrypted = "";
-            encrypted = word.replaceAll(label0, "0");
-            encrypted = word.replaceAll(label1, "1");
+        encrypted = word.replaceAll(label0, "0");
+        encrypted = word.replaceAll(label1, "1");
 
         return encrypted;
     }
 
     //GENERATOR OF GRAMMAR
-    public Grammar generateGrammar(){
+    public Grammar generateGrammar() {
         return new Grammar();
     }
 
-    public List<String> generateTerminals(int number){
+    public List<String> generateTerminals(int number) {
         List<String> terminals = new ArrayList<>();
 
-        for(int i = 97; i < 97 + number; i++){
-           terminals.add(Character.toString ((char) i));
+        for (int i = 97; i < 97 + number; i++) {
+            terminals.add(Character.toString((char) i));
         }
         return terminals;
     }
 
-    public List<String> generateNonTerminals(int number){
+    public List<String> generateNonTerminals(int number) {
         List<String> nonTerminals = new ArrayList<>();
 
         //initNonTerminal - static
         nonTerminals.add("S");
 
-        for(int i = 65; i < 65 + number -1; i++){
-            if(!nonTerminals.contains(Character.toString ((char) i))){
-                nonTerminals.add(Character.toString ((char) i));
+        for (int i = 65; i < 65 + number - 1; i++) {
+            if (!nonTerminals.contains(Character.toString((char) i))) {
+                nonTerminals.add(Character.toString((char) i));
             }
         }
         return nonTerminals;
     }
 
-    public List<Rule> generateRules(List<String> nonTerminals, List<String> terminals, int numRules){
+    public List<Rule> generateRules(List<String> nonTerminals, List<String> terminals, int numRules) {
         List<Rule> generatedRules = new ArrayList<>();
         int counter = 0;
-        for(String str : nonTerminals){
-            for(int i = 0; i < numRules; i++){
+        for (String str : nonTerminals) {
+            for (int i = 0; i < numRules; i++) {
                 Rule rule = new Rule();
                 rule.setLeftSide(str);
-                rule.setLabel("r"+counter);
+                rule.setLabel("r" + counter);
                 String rightSide = generateRightSide(nonTerminals, terminals, str, generatedRules, i);
 
                 rule.setRightSide(rightSide);
@@ -598,66 +605,129 @@ public class Automaton {
             }
 
 
-
         }
 
         return generatedRules;
     }
 
-    public String generateRightSide(List<String> nonTerminals, List<String> terminals, String nonTerminal, List<Rule> rules, int index){
+    public String generateRightSideOriginal(List<String> nonTerminals, List<String> terminals, String nonTerminal, List<Rule> rules, int index) {
         String rightSide = "";
         boolean notGenerated = true;
         String terminal = "";
 
-        while(notGenerated) {
-            int randomNum = generateRandInt(0, terminals.size()-1);
-                    terminal = terminals.get(randomNum);
-            notGenerated = isTerminalUsed(terminal, nonTerminal,rules);
+        while (notGenerated) {
+            int randomNum = generateRandInt(0, terminals.size() - 1);
+            terminal = terminals.get(randomNum);
+            notGenerated = isTerminalUsed(terminal, nonTerminal, rules);
         }
 
-        rightSide+=terminal;
+        rightSide += terminal;
 
-       if(index == 0) {
-                //generovanie nahodnej dlzky pravidla
-                int randomNum = generateRandInt(1, 5);
-                for(int i = 0 ; i < randomNum; i++){
-                    int randomPosition = generateRandInt(0,  terminals.size() -1);
+        if (index == 0) {
+            //generovanie nahodnej dlzky pravidla
+            int randomNum = generateRandInt(1, 5);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, terminals.size() - 1);
+                rightSide += terminals.get(randomPosition);
+            }
+        } else if (index == 1) {
+            List<String> concatedList = new ArrayList<String>(nonTerminals);
+            concatedList.addAll(terminals);
+
+            int randomNum = generateRandInt(1, 3);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, concatedList.size() - 1);
+                rightSide += concatedList.get(randomPosition);
+                if (unusedNonTerminals.contains(concatedList.get(randomPosition))) {
+                    unusedNonTerminals.remove(concatedList.get(randomPosition));
+                }
+                unusedNonTerminals.remove(nonTerminal);
+            }
+            rightSide += nonTerminal;
+
+            if (unusedNonTerminals.size() > 0) {
+                rightSide += unusedNonTerminals.get(0);
+                unusedNonTerminals.remove(0);
+            }
+        } else {
+            List<String> concatedList = new ArrayList<String>(nonTerminals);
+            concatedList.addAll(terminals);
+
+            int randomNum = generateRandInt(1, 4);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, concatedList.size() - 1);
+                rightSide += concatedList.get(randomPosition);
+            }
+            if (unusedNonTerminals.size() > 0) {
+                rightSide += unusedNonTerminals.get(0);
+                unusedNonTerminals.remove(0);
+            }
+        }
+
+        rightSide = shuffleString(rightSide);
+        return rightSide;
+    }
+
+    public String generateRightSide(List<String> nonTerminals, List<String> terminals, String nonTerminal, List<Rule> rules, int index) {
+        String rightSide = "";
+        boolean notGenerated = true;
+        String terminal = "";
+
+        while (notGenerated) {
+            int randomNum = generateRandInt(0, terminals.size() - 1);
+            terminal = terminals.get(randomNum);
+            notGenerated = isTerminalUsed(terminal, nonTerminal, rules);
+        }
+
+        rightSide += terminal;
+
+        //iba terminaly
+        if (index == 0) {
+            //generovanie nahodnej dlzky pravidla
+            int randomNum = generateRandInt(1, 5);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, terminals.size() - 1);
+                rightSide += terminals.get(randomPosition);
+            }
+        }
+
+        //neterminal- rekurzia
+        else if (index == 1) {
+//            List<String> concatedList = new ArrayList<String>(nonTerminals);
+//            concatedList.addAll(terminals);
+            rightSide += nonTerminal;
+            unusedNonTerminals.remove(nonTerminal);
+            int randomNum = generateRandInt(0, 3);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, terminals.size() - 1);
+                rightSide += terminals.get(randomPosition);
+            }
+        }
+
+        //hocico
+        else {
+            if (unusedNonTerminals.size() > 0) {
+                rightSide += unusedNonTerminals.get(0);
+                unusedNonTerminals.remove(0);
+
+                int randomNum = generateRandInt(1, 3);
+                for (int i = 0; i < randomNum; i++) {
+                    int randomPosition = generateRandInt(0, terminals.size() - 1);
+                    rightSide += terminals.get(randomPosition);
+                }
+            } else {
+                int randomBool = generateRandInt(0, 1);
+                if (randomBool == 1) {
+                    int randomPosition = generateRandInt(0, nonTerminals.size() - 1);
+                    rightSide += nonTerminals.get(randomPosition);
+
+                }
+                int randomNum = generateRandInt(1, 4);
+                for (int i = 0; i < randomNum; i++) {
+                    int randomPosition = generateRandInt(0, terminals.size() - 1);
                     rightSide += terminals.get(randomPosition);
                 }
             }
-           else if(index ==1) {
-                List<String> concatedList = new ArrayList<String>(nonTerminals);
-                concatedList.addAll(terminals);
-
-                int randomNum = generateRandInt(1, 3);
-                for(int i = 0 ; i < randomNum; i++){
-                    int randomPosition = generateRandInt(0,  concatedList.size() -1);
-                    rightSide += concatedList.get(randomPosition);
-                    if(unusedNonTerminals.contains(concatedList.get(randomPosition))){
-                        unusedNonTerminals.remove(concatedList.get(randomPosition));
-                    }
-                    unusedNonTerminals.remove(nonTerminal);
-                }
-                rightSide+= nonTerminal;
-
-                if(unusedNonTerminals.size() > 0) {
-                    rightSide += unusedNonTerminals.get(0);
-                    unusedNonTerminals.remove(0);
-                }
-            }
-            else{
-                List<String> concatedList = new ArrayList<String>(nonTerminals);
-                concatedList.addAll(terminals);
-
-                int randomNum = generateRandInt(1, 4);
-                for(int i = 0 ; i < randomNum; i++){
-                    int randomPosition = generateRandInt(0,  concatedList.size() -1);
-                    rightSide += concatedList.get(randomPosition);
-                }
-                if(unusedNonTerminals.size() > 0) {
-                    rightSide += unusedNonTerminals.get(0);
-                    unusedNonTerminals.remove(0);
-                }
         }
 
         rightSide = shuffleString(rightSide);
@@ -681,7 +751,7 @@ public class Automaton {
         for (Rule r : rules) {
             if (r.getLeftSide().equals(nonTerminal)) {
                 for (int i = 0; i < r.getRightSide().length(); i++) {
-                    if(String.valueOf(r.getRightSide().charAt(i)).equals(nonTerminal)){
+                    if (String.valueOf(r.getRightSide().charAt(i)).equals(nonTerminal)) {
                         return true;
                     }
                 }
@@ -694,7 +764,7 @@ public class Automaton {
         for (Rule r : rules) {
             if (r.getLeftSide().equals(nonTerminal)) {
                 for (int i = 0; i < r.getRightSide().length(); i++) {
-                    if(!terminals.contains(String.valueOf(r.getRightSide().charAt(i)))){
+                    if (!terminals.contains(String.valueOf(r.getRightSide().charAt(i)))) {
                         return false;
                     }
                 }
@@ -704,15 +774,15 @@ public class Automaton {
     }
 
 
-    public String shuffleString(String input){
+    public String shuffleString(String input) {
         List<Character> characters = new ArrayList<Character>();
-        for(char c:input.toCharArray()){
+        for (char c : input.toCharArray()) {
             characters.add(c);
         }
         StringBuilder output = new StringBuilder(input.length());
         output.append(characters.remove(0));
-        while(characters.size()!=0){
-            int randPicker = generateRandInt(0, characters.size()-1);
+        while (characters.size() != 0) {
+            int randPicker = generateRandInt(0, characters.size() - 1);
             output.append(characters.remove(randPicker));
         }
         return (output.toString());
@@ -727,76 +797,114 @@ public class Automaton {
         return randomNum;
     }
 
-    public Rule pickLabelForZero(List<Rule> rules){
-        int randomPosition = generateRandInt(0, rules.size()-1);
+    public Rule pickLabelForZero(List<Rule> rules) {
+        int randomPosition = generateRandInt(0, rules.size() - 1);
         return rules.get(randomPosition);
     }
 
-    public Rule pickLabelForOne(List<Rule> rules, Rule zeroLabel){
+    public Rule pickLabelForOne(List<Rule> rules, Rule zeroLabel) {
         boolean flag = true;
         int randomPosition = 0;
-        while(flag) {
-            randomPosition = generateRandInt(0, rules.size()-1);
+        while (flag) {
+            randomPosition = generateRandInt(0, rules.size() - 1);
             flag = rules.get(randomPosition).getLabel().equals(zeroLabel.getLabel());
         }
-        return  rules.get(randomPosition);
+        return rules.get(randomPosition);
     }
 
+
     //extra rules for one and zero label
-    public List<Rule> generateExtraRules(List<Rule> rules, Rule zero, Rule one, List<String> terminals, List<String> nonTerminals){
+    public List<Rule> generateExtraRules(List<Rule> rules, Rule zero, Rule one, List<String> terminals, List<String> nonTerminals) {
         boolean nonGenerated = true;
         boolean nonGenerated2 = true;
         String terminal = "";
 
         String rightSide = "";
 
-        while(nonGenerated) {
-            int randomNum = generateRandInt(0, terminals.size()-1);
-            terminal = terminals.get(randomNum);
-            nonGenerated = isTerminalUsed(terminal, zero.getLeftSide(),rules);
+        if(!zero.getLeftSide().equals(one.getLeftSide())) {
+
+            while (nonGenerated) {
+                int randomNum = generateRandInt(0, terminals.size() - 1);
+                terminal = terminals.get(randomNum);
+                nonGenerated = isTerminalUsed(terminal, zero.getLeftSide(), rules);
+            }
+
+            Rule rule = new Rule();
+            rule.setLeftSide(zero.getLeftSide());
+            rule.setLabel("r" + rules.size());
+            rightSide += terminal;
+            rightSide += one.getLeftSide();
+
+            List<String> concatedList = new ArrayList<String>(nonTerminals);
+            concatedList.addAll(terminals);
+
+            int randomNum = generateRandInt(1, 3);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, concatedList.size() - 1);
+                rightSide += concatedList.get(randomPosition);
+            }
+
+            rule.setRightSide(shuffleString(rightSide));
+            rules.add(rule);
+            rightSide = "";
+
+            while (nonGenerated2) {
+                int randomNum2 = generateRandInt(0, terminals.size() - 1);
+                terminal = terminals.get(randomNum2);
+                nonGenerated2 = isTerminalUsed(terminal, one.getLeftSide(), rules);
+            }
+
+            rule = new Rule();
+            rule.setLeftSide(one.getLeftSide());
+            rule.setLabel("r" + rules.size());
+            rightSide += terminal;
+            rightSide += zero.getLeftSide();
+
+            randomNum = generateRandInt(1, 3);
+            for (int i = 0; i < randomNum; i++) {
+                int randomPosition = generateRandInt(0, concatedList.size() - 1);
+                rightSide += concatedList.get(randomPosition);
+            }
+
+            rule.setRightSide(shuffleString(rightSide));
+            rules.add(rule);
         }
-
-        Rule rule = new Rule();
-        rule.setLeftSide(zero.getLeftSide());
-        rule.setLabel("r"+rules.size());
-        rightSide += terminal;
-        rightSide += one.getLeftSide();
-
-        List<String> concatedList = new ArrayList<String>(nonTerminals);
-        concatedList.addAll(terminals);
-
-        int randomNum = generateRandInt(1, 3);
-        for(int i = 0 ; i < randomNum; i++){
-            int randomPosition = generateRandInt(0,  concatedList.size() -1);
-            rightSide += concatedList.get(randomPosition);
-        }
-
-        rule.setRightSide(shuffleString(rightSide));
-        rules.add(rule);
-        rightSide = "";
-
-        while(nonGenerated2) {
-            int randomNum2 = generateRandInt(0, terminals.size()-1);
-            terminal = terminals.get(randomNum2);
-            nonGenerated2 = isTerminalUsed(terminal, one.getLeftSide(),rules);
-        }
-
-        rule = new Rule();
-        rule.setLeftSide(one.getLeftSide());
-        rule.setLabel("r"+rules.size());
-        rightSide += terminal;
-        rightSide += zero.getLeftSide();
-
-        randomNum = generateRandInt(1, 3);
-        for(int i = 0 ; i < randomNum; i++){
-            int randomPosition = generateRandInt(0,  concatedList.size() -1);
-            rightSide += concatedList.get(randomPosition);
-        }
-
-        rule.setRightSide(shuffleString(rightSide));
-        rules.add(rule);
 
         return rules;
+    }
+
+    public Grammar createSpecialGrammar(Grammar grammar){
+        Grammar newGrammar= new Grammar();
+        newGrammar.setInitTerminal(grammar.getInitTerminal());
+        newGrammar.setNonTerminals(grammar.getNonTerminals());
+        List<String> terminals = new ArrayList<>();
+        List<Rule> rules = new ArrayList<>();
+
+        for(Rule r: grammar.getRules()){
+            Rule newRule = new Rule();
+            newRule.setLeftSide(r.getLeftSide());
+            terminals.add(r.getLabel());
+            newRule.setLabel(r.getLabel());
+            newRule.setRightSide(createSpecialRightside(r, grammar));
+
+            rules.add(newRule);
+        }
+        newGrammar.setTerminals(terminals);
+        newGrammar.setRules(rules);
+
+        return newGrammar;
+    }
+
+    public String createSpecialRightside(Rule rule, Grammar grammar){
+        String newLeft = "";
+        newLeft +=rule.getLabel();
+        for(int i = 0; i< rule.getRightSide().length(); i++){
+            if(grammar.isNonTerminal(String.valueOf(rule.getRightSide().charAt(i)))){
+                newLeft += String.valueOf(rule.getRightSide().charAt(i));
+            }
+        }
+
+        return newLeft;
     }
 
 }
