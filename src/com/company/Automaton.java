@@ -26,12 +26,14 @@ public class Automaton {
     private int tserialNo = 0;
     Stack tempstack;
 
+    String binaryWord = "0101";
+
     int pos;
 
     //number of Terminals, nonTerminals and rules for one nonTerminal -> used for generating grammar
-    int numGenTerm = 10;
-    int numGenNonTerm = 4;
-    int numRulesPerNonTerm = 7;
+    int numGenTerm = 5;
+    int numGenNonTerm = 3;
+    int numRulesPerNonTerm = 2;
 
     List<String> unusedNonTerminals;
 
@@ -61,7 +63,7 @@ public class Automaton {
         List<Rule> rules = generateRules(nonTerminals, terminals, numRulesPerNonTerm);
         Rule labelZero = pickLabelForZero(rules);
         Rule labelOne = pickLabelForOne(rules, labelZero);
-        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel(), labelOne.getLabel());
+//        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel(), labelOne.getLabel());
 
         rules = generateExtraRules(rules, labelZero, labelOne, terminals, nonTerminals);
         Grammar grammarGen = new Grammar();
@@ -70,9 +72,16 @@ public class Automaton {
         grammarGen.setNonTerminals(nonTerminals);
         grammarGen.setRules(rules);
 
+
         System.out.println(rules);
 
         Grammar newGrammar = createSpecialGrammar(grammarGen);
+
+        List<String> encryptedList = getEncryptedWordToLabels(binaryWord, labelZero.getLabel(), labelOne.getLabel());
+
+        FiniteAutomaton finAutomaton = setAutomatonForRegularExpression(labelZero,labelOne,rules,binaryWord);
+
+
         System.out.println(newGrammar);
     }
 
@@ -560,6 +569,20 @@ public class Automaton {
         return encrypted;
     }
 
+    public List<String> getEncryptedWordToLabels(String word, String label0, String label1) {
+        List<String> encrypted = new ArrayList<>();
+       for(int i= 0 ; i< word.length(); i++ ){
+           if(String.valueOf(word.charAt(i)).equals("0")){
+               encrypted.add(label0);
+           }
+           else if(String.valueOf(word.charAt(i)).equals("1")){
+               encrypted.add(label1);
+           }
+       }
+
+        return encrypted;
+    }
+
     //GENERATOR OF GRAMMAR
     public Grammar generateGrammar() {
         return new Grammar();
@@ -907,4 +930,70 @@ public class Automaton {
         return newLeft;
     }
 
+    public boolean startAutomatonForRegularExpression(List<String> word){
+        //pozriem co ma na vstupe a v akom stave som -> podla toho sa posuniem dalej
+        for(String str : word){
+        }
+
+        return true;
+
+    }
+
+    public FiniteAutomaton setAutomatonForRegularExpression(Rule label0, Rule label1,List<Rule> rules, String word){
+        List<String> encryptedWordToLabels = getEncryptedWordToLabels(word,label0.getLabel(), label1.getLabel());
+        FiniteAutomaton automat = new FiniteAutomaton();
+        List<String> states = new ArrayList<>();
+        List<String> alphabet = new ArrayList<>();
+
+        List<Rule> allOtherRules = getUnusedLabelsForOneAndZero(label0, label1, rules);
+
+         List<AutomatonRule> fRules = new ArrayList<>();
+
+
+        for(int i = 0; i<= word.length(); i++){
+            states.add("q"+i);
+        }
+        automat.setStates(states);
+        automat.setFiniteSymbol(states.get(states.size()-1));
+        automat.setInitSymbol(states.get(0));
+
+        for(int i = 0; i< states.size(); i++){
+
+            for(Rule r: allOtherRules){
+                fRules.add( new AutomatonRule(states.get(i), states.get(i), r.getLabel()));
+            }
+            if(!automat.getFiniteSymbol().equals(states.get(i))) {
+                fRules.add(new AutomatonRule(states.get(i), states.get(i+1), encryptedWordToLabels.get(0)));
+                encryptedWordToLabels.remove(0);
+            }
+
+        }
+        automat.setRules(fRules);
+        for(Rule r: rules){
+            alphabet.add(r.getLabel());
+        }
+
+        automat.setAlphabet(alphabet);
+
+        return automat;
+    }
+
+
+    public List<Rule> getUnusedLabelsForOneAndZero(Rule label0, Rule label1, List<Rule> allRules){
+        List<Rule> allOtherRules = new ArrayList<>();
+
+        for(Rule rule: allRules){
+            if((rule.getLabel()!= label0.getLabel()) && rule.getLabel()!= label1.getLabel()){
+                allOtherRules.add(rule);
+            }
+        }
+
+        return allOtherRules;
+    }
+
+
+
+//    public List<AutomatonRule> getAllStatesFromThisState(String state){
+//
+//    }
 }
