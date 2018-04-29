@@ -1,9 +1,6 @@
 package com.company;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Stack;
+import java.util.*;
 
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
@@ -79,7 +76,11 @@ public class Automaton {
 
         List<String> encryptedList = getEncryptedWordToLabels(binaryWord, labelZero.getLabel(), labelOne.getLabel());
 
-        FiniteAutomaton finAutomaton = setAutomatonForRegularExpression(labelZero,labelOne,rules,binaryWord);
+        FiniteAutomaton finAutomaton = setAutomatonForRegularExpression(labelZero, labelOne, rules, binaryWord);
+
+        FiniteAutomaton automatonGramm = setAutomatonForSpecialGrammar(newGrammar);
+//       List<String> regularExp = (Arrays.asList("xyz", "abc"));
+        boolean accepted = startAutomatonForRegularExpression(encryptedList, finAutomaton);
 
 
         System.out.println(newGrammar);
@@ -571,14 +572,13 @@ public class Automaton {
 
     public List<String> getEncryptedWordToLabels(String word, String label0, String label1) {
         List<String> encrypted = new ArrayList<>();
-       for(int i= 0 ; i< word.length(); i++ ){
-           if(String.valueOf(word.charAt(i)).equals("0")){
-               encrypted.add(label0);
-           }
-           else if(String.valueOf(word.charAt(i)).equals("1")){
-               encrypted.add(label1);
-           }
-       }
+        for (int i = 0; i < word.length(); i++) {
+            if (String.valueOf(word.charAt(i)).equals("0")) {
+                encrypted.add(label0);
+            } else if (String.valueOf(word.charAt(i)).equals("1")) {
+                encrypted.add(label1);
+            }
+        }
 
         return encrypted;
     }
@@ -844,7 +844,7 @@ public class Automaton {
 
         String rightSide = "";
 
-        if(!zero.getLeftSide().equals(one.getLeftSide())) {
+        if (!zero.getLeftSide().equals(one.getLeftSide())) {
 
             while (nonGenerated) {
                 int randomNum = generateRandInt(0, terminals.size() - 1);
@@ -858,8 +858,8 @@ public class Automaton {
             rightSide += terminal;
             rightSide += one.getLeftSide();
 
-            List<String> concatedList = new ArrayList<String>(nonTerminals);
-            concatedList.addAll(terminals);
+            List<String> concatedList = new ArrayList<String>(terminals);
+//            concatedList.addAll(terminals);
 
             int randomNum = generateRandInt(1, 3);
             for (int i = 0; i < randomNum; i++) {
@@ -896,14 +896,14 @@ public class Automaton {
         return rules;
     }
 
-    public Grammar createSpecialGrammar(Grammar grammar){
-        Grammar newGrammar= new Grammar();
+    public Grammar createSpecialGrammar(Grammar grammar) {
+        Grammar newGrammar = new Grammar();
         newGrammar.setInitTerminal(grammar.getInitTerminal());
         newGrammar.setNonTerminals(grammar.getNonTerminals());
         List<String> terminals = new ArrayList<>();
         List<Rule> rules = new ArrayList<>();
 
-        for(Rule r: grammar.getRules()){
+        for (Rule r : grammar.getRules()) {
             Rule newRule = new Rule();
             newRule.setLeftSide(r.getLeftSide());
             terminals.add(r.getLabel());
@@ -918,11 +918,11 @@ public class Automaton {
         return newGrammar;
     }
 
-    public String createSpecialRightside(Rule rule, Grammar grammar){
+    public String createSpecialRightside(Rule rule, Grammar grammar) {
         String newLeft = "";
-        newLeft +=rule.getLabel();
-        for(int i = 0; i< rule.getRightSide().length(); i++){
-            if(grammar.isNonTerminal(String.valueOf(rule.getRightSide().charAt(i)))){
+        newLeft += rule.getLabel();
+        for (int i = 0; i < rule.getRightSide().length(); i++) {
+            if (grammar.isNonTerminal(String.valueOf(rule.getRightSide().charAt(i)))) {
                 newLeft += String.valueOf(rule.getRightSide().charAt(i));
             }
         }
@@ -930,46 +930,76 @@ public class Automaton {
         return newLeft;
     }
 
-    public boolean startAutomatonForRegularExpression(List<String> word){
+    public boolean startAutomatonForRegularExpression(List<String> word, FiniteAutomaton automat) {
         //pozriem co ma na vstupe a v akom stave som -> podla toho sa posuniem dalej
-        for(String str : word){
+        String currentState = automat.getInitSymbol();
+
+        while (word.size() > 0) {
+            currentState = getNextState(getAllRulesInState(automat.getRules(), currentState), word.get(0));
+            word.remove(0);
         }
 
-        return true;
-
+        return currentState.equals(automat.getFiniteSymbol());
     }
 
-    public FiniteAutomaton setAutomatonForRegularExpression(Rule label0, Rule label1,List<Rule> rules, String word){
-        List<String> encryptedWordToLabels = getEncryptedWordToLabels(word,label0.getLabel(), label1.getLabel());
+    public FiniteAutomaton setAutomatonForSpecialGrammar(Grammar grammar) {
+        FiniteAutomaton automat = new FiniteAutomaton();
+        List<AutomatonRule> rules = new ArrayList<>();
+        List<String> states = new ArrayList<>();
+        automat.setAlphabet(grammar.getTerminals());
+        automat.setStates(grammar.getNonTerminals());
+        automat.getStates().add("qf");
+        automat.setFiniteSymbol("qf");
+        automat.setInitSymbol(grammar.getInitTerminal());
+
+        for(Rule r: grammar.getRules()){
+            if(grammar.containsOnlyTerminal(r.getRightSide())){
+                rules.add(new AutomatonRule(r.getLeftSide(),"qf",grammar.getUsedTerminal(r.getRightSide())));
+            }
+            else{
+                rules.add(new AutomatonRule(r.getLeftSide(),grammar.getUsedNonTerminal(r.getRightSide()),grammar.getUsedTerminal(r.getRightSide())));
+            }
+
+        }
+        automat.setRules(rules);
+
+        for (AutomatonRule r : rules) {
+            if(!states.contains(r.getFrom())){
+                states.add(r.getFrom());
+            }
+        }
+        return automat;
+    }
+
+    public FiniteAutomaton setAutomatonForRegularExpression(Rule label0, Rule label1, List<Rule> rules, String word) {
+        List<String> encryptedWordToLabels = getEncryptedWordToLabels(word, label0.getLabel(), label1.getLabel());
         FiniteAutomaton automat = new FiniteAutomaton();
         List<String> states = new ArrayList<>();
         List<String> alphabet = new ArrayList<>();
 
         List<Rule> allOtherRules = getUnusedLabelsForOneAndZero(label0, label1, rules);
 
-         List<AutomatonRule> fRules = new ArrayList<>();
+        List<AutomatonRule> fRules = new ArrayList<>();
 
-
-        for(int i = 0; i<= word.length(); i++){
-            states.add("q"+i);
+        for (int i = 0; i <= word.length(); i++) {
+            states.add("q" + i);
         }
         automat.setStates(states);
-        automat.setFiniteSymbol(states.get(states.size()-1));
+        automat.setFiniteSymbol(states.get(states.size() - 1));
         automat.setInitSymbol(states.get(0));
 
-        for(int i = 0; i< states.size(); i++){
+        for (int i = 0; i < states.size(); i++) {
 
-            for(Rule r: allOtherRules){
-                fRules.add( new AutomatonRule(states.get(i), states.get(i), r.getLabel()));
+            for (Rule r : allOtherRules) {
+                fRules.add(new AutomatonRule(states.get(i), states.get(i), r.getLabel()));
             }
-            if(!automat.getFiniteSymbol().equals(states.get(i))) {
-                fRules.add(new AutomatonRule(states.get(i), states.get(i+1), encryptedWordToLabels.get(0)));
+            if (!automat.getFiniteSymbol().equals(states.get(i))) {
+                fRules.add(new AutomatonRule(states.get(i), states.get(i + 1), encryptedWordToLabels.get(0)));
                 encryptedWordToLabels.remove(0);
             }
-
         }
         automat.setRules(fRules);
-        for(Rule r: rules){
+        for (Rule r : rules) {
             alphabet.add(r.getLabel());
         }
 
@@ -979,11 +1009,11 @@ public class Automaton {
     }
 
 
-    public List<Rule> getUnusedLabelsForOneAndZero(Rule label0, Rule label1, List<Rule> allRules){
+    public List<Rule> getUnusedLabelsForOneAndZero(Rule label0, Rule label1, List<Rule> allRules) {
         List<Rule> allOtherRules = new ArrayList<>();
 
-        for(Rule rule: allRules){
-            if((rule.getLabel()!= label0.getLabel()) && rule.getLabel()!= label1.getLabel()){
+        for (Rule rule : allRules) {
+            if ((rule.getLabel() != label0.getLabel()) && rule.getLabel() != label1.getLabel()) {
                 allOtherRules.add(rule);
             }
         }
@@ -991,9 +1021,25 @@ public class Automaton {
         return allOtherRules;
     }
 
+    public String getNextState(List<AutomatonRule> rules, String word) {
+        for (AutomatonRule rule : rules) {
+            if (rule.getOn().equals(word)) {
+                return rule.getTo();
+            }
+        }
 
+        return "";
+    }
 
-//    public List<AutomatonRule> getAllStatesFromThisState(String state){
-//
-//    }
+    public List<AutomatonRule> getAllRulesInState(List<AutomatonRule> rules, String state) {
+        List<AutomatonRule> selectedRules = new ArrayList<>();
+
+        for (AutomatonRule r : rules) {
+            if (r.getFrom().equals(state)) {
+                selectedRules.add(r);
+            }
+        }
+        return selectedRules;
+    }
+
 }
