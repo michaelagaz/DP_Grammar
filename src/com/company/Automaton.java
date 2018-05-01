@@ -83,7 +83,10 @@ public class Automaton {
 
         FiniteAutomaton automatonGramm = setAutomatonForSpecialGrammar(newGrammar);
 
-        setCombinedAutomaton(finAutomaton,automatonGramm);
+        List<String> labels = setAutomatonToGraph(setCombinedAutomaton(finAutomaton,automatonGramm));
+
+        String word = setLabelsToDerivatedWord(labels,grammarGen);
+
 //       List<String> regularExp = (Arrays.asList("xyz", "abc"));
         boolean accepted = startAutomatonForRegularExpression(encryptedList, finAutomaton);
 
@@ -637,9 +640,10 @@ public class Automaton {
         //removing initNonTerminal - because it is always in use.
         unusedNonTerminals.remove(nonTerminals.get(0));
 
+        int index = 0;
         while(unusedNonTerminals.size()>0){
             Rule rule = new Rule();
-            rule.setLeftSide(nonTerminals.get(random));
+            rule.setLeftSide(nonTerminals.get(index));
             rule.setLabel("r" + counter);
             String rightSide = generateRightSide(nonTerminals, terminals, rule.getLeftSide(), generatedRules, 2);
 
@@ -647,6 +651,7 @@ public class Automaton {
 
             generatedRules.add(rule);
             counter++;
+            index++;
 
         }
 
@@ -1031,11 +1036,13 @@ public class Automaton {
         FiniteAutomaton comAutomaton = new FiniteAutomaton();
         List<String> regRules = new ArrayList<>();
         List<String> specialRules = new ArrayList<>();
+        List<String> states = new ArrayList<>();
+        List<String> alphabet = new ArrayList<>();
         AutomatonRule newRule;
 
         List<AutomatonRule> newRules = new ArrayList<>();
-        comAutomaton.setInitSymbol(specialGrammar.getInitSymbol() + "," + regAutomaton.getInitSymbol());
-        comAutomaton.setFiniteSymbol(specialGrammar.getFiniteSymbol() + "," + regAutomaton.getFiniteSymbol());
+        comAutomaton.setInitSymbol(regAutomaton.getInitSymbol()+ ","+ specialGrammar.getInitSymbol());
+        comAutomaton.setFiniteSymbol(regAutomaton.getFiniteSymbol()+","+specialGrammar.getFiniteSymbol());
 
         for (String regState : regAutomaton.getStates()) {
             for (String specialState : specialGrammar.getStates()) {
@@ -1055,8 +1062,31 @@ public class Automaton {
 
             }
         }
+        List<AutomatonRule> modifiedRules = new ArrayList<>(newRules);
+//        for(AutomatonRule rule: newRules){
+//             if((!isStateInUse(newRules,rule.getFrom())) && (!rule.getFrom().equals(regAutomaton.getInitSymbol()+","
+//                     +specialGrammar.getInitSymbol()))){
+//                 modifiedRules.remove(rule);
+//             }
+//        }
 
-        System.out.println(newRules);
+        for(AutomatonRule rule: modifiedRules){
+            if(!states.contains(rule.getFrom())) {
+                states.add(rule.getFrom());
+            }
+            if(!states.contains(rule.getTo())) {
+                states.add(rule.getTo());
+            }
+            if(!alphabet.contains(rule.getOn())) {
+                alphabet.add(rule.getOn());
+            }
+        }
+
+        comAutomaton.setRules(modifiedRules);
+        comAutomaton.setAlphabet(alphabet);
+        comAutomaton.setStates(states);
+
+//        System.out.println(newRules);
         return comAutomaton;
     }
 
@@ -1078,7 +1108,6 @@ public class Automaton {
                 return rule.getTo();
             }
         }
-
         return "";
     }
 
@@ -1113,4 +1142,74 @@ public class Automaton {
         }
         return null;
     }
+
+    //checks if the current from rule is somewhere before as end rule
+    public boolean isStateInUse(List<AutomatonRule> rules, String state){
+        for(AutomatonRule rule: rules){
+            if(rule.getTo().equals(state)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<String> setAutomatonToGraph(FiniteAutomaton automaton){
+        Graph graph = new Graph(automaton.getStates().size());
+        List<List<Integer>> result = new ArrayList<>();
+        for(AutomatonRule rule: automaton.getRules()){
+            graph.addEdge(findPositionOfRuleInState(automaton.getStates(),rule.getFrom()),
+                    findPositionOfRuleInState(automaton.getStates(),rule.getTo()));
+
+        }
+        result =graph.printAllPaths(findPositionOfRuleInState(automaton.getStates(),automaton.getInitSymbol()),findPositionOfRuleInState(automaton.getStates(),automaton.getFiniteSymbol()));
+        System.out.println(result);
+        if(!result.isEmpty()) {
+            List<String> labels = putLabelsTogether(result.get(0), automaton);
+            System.out.println(labels);
+            return labels;
+        }
+        return null;
+    }
+
+    //for quicker find the position of Rule from- to in List of States
+    public int findPositionOfRuleInState(List<String> states, String rule){
+        for(int i = 0 ; i < states.size(); i++){
+            if(states.get(i).equals(rule)){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public List<String> putLabelsTogether(List<Integer> list, FiniteAutomaton automat){
+        List<String> allLabels = new ArrayList<>();
+        for(int i = 0 ; i< list.size() ; i++){
+            if(i+1 < list.size()){
+               allLabels.add(findRuleByStates(automat.getRules(),automat.getStates().get(list.get(i)),automat.getStates().get(list.get(i+1))).getOn());
+            }
+        }
+
+        return allLabels;
+    }
+
+    //i have state1 and state2 but i need rule that represents these two states
+    public AutomatonRule findRuleByStates(List<AutomatonRule> rules,String stateFrom, String stateTo){
+        for(AutomatonRule rule: rules){
+         if(rule.getFrom().equals(stateFrom) && rule.getTo().equals(stateTo))   {
+             return rule;
+         }
+        }
+      return  null;
+    }
+
+    public String setLabelsToDerivatedWord(List<String> labels, Grammar grammar){
+        String word = grammar.findRuleByLabel(labels.get(0)).getLeftSide();
+        for(String str: labels){
+            Rule rule =grammar.findRuleByLabel(str);
+          word = word.replace(rule.getLeftSide(),rule.getRightSide());
+        }
+        return word;
+    }
+
+
 }

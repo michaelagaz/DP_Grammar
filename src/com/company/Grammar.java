@@ -74,11 +74,38 @@ public class Grammar {
         return null;
     }
 
+    public boolean containsOnlyTerminal(String word) {
+        for (String nonTerminal : this.getNonTerminals()) {
+            if (word.contains(nonTerminal)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public String getUsedNonTerminal(String word) {
+        for (String nonTerminal : this.getNonTerminals()) {
+            if (word.contains(nonTerminal)) {
+                return nonTerminal;
+            }
+        }
+        return "";
+    }
+
+    public String getUsedTerminal(String word) {
+        for (String terminal : this.getTerminals()) {
+            if (word.contains(terminal)) {
+                return terminal;
+            }
+        }
+        return "";
+    }
+
     public boolean isTerminal(String character) {
         return (this.getTerminals().contains(character));
     }
 
-    public boolean isNonTerminal(String character){
-        return(this.getNonTerminals().contains(character));
+    public boolean isNonTerminal(String character) {
+        return (this.getNonTerminals().contains(character));
     }
 }
