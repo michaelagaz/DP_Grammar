@@ -86,6 +86,8 @@ public class Automaton {
         List<String> labels = setAutomatonToGraph(setCombinedAutomaton(finAutomaton,automatonGramm));
 
         String word = setLabelsToDerivatedWord(labels,grammarGen);
+        derivatedWord = word;
+        doMainFunction(grammarGen);
 
 //       List<String> regularExp = (Arrays.asList("xyz", "abc"));
         boolean accepted = startAutomatonForRegularExpression(encryptedList, finAutomaton);
@@ -215,9 +217,9 @@ public class Automaton {
         usedRules = new ArrayList<>();
 
         stack.push("$");
-//        stack.push(grammar.getInitTerminal());
-        stack.push("A");
-        stack.push("A");
+        stack.push(grammar.getInitTerminal());
+//        stack.push("A");
+//        stack.push("A");
         while (!stack.peek().equals("$")) {
             Rule rule = predict(grammar, String.valueOf(stack.peek()));
             usedRules.add(rule);
@@ -228,8 +230,10 @@ public class Automaton {
                 for (int i = 0; i < getWordBackWards(rule.getRightSide()).length(); i++) {
                     stack.push(String.valueOf(getWordBackWards(rule.getRightSide()).charAt(i)));
                 }
-                stack.pop();
-                derivatedWord = deleteFirstChar(derivatedWord);
+                while((stack.peek().equals(String.valueOf(derivatedWord.charAt(0))) && ((!stack.peek().equals("$")) || (derivatedWord.length() >0)) )) {
+                    stack.pop();
+                    derivatedWord = deleteFirstChar(derivatedWord);
+                }
             }
 
         }
