@@ -1,5 +1,8 @@
 package com.company;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -26,7 +29,7 @@ public class Automaton {
     private int tserialNo = 0;
     Stack tempstack;
 
-    String binaryWord = "0101";
+    String binaryWord = "0101010000100001";
 
     int pos;
 
@@ -42,58 +45,97 @@ public class Automaton {
         this.grammar = grammar;
     }
 
-    public Automaton() {
-        Grammar grammar = new Grammar(addNonTerminals(addRules()), addTerminals(addRules()), "S", addRules());
-        this.grammar = grammar;
-        System.out.println("NonTerminals: " + addNonTerminals(addRules()));
-        System.out.println("Terminals: " + addTerminals(addRules()));
-        grammar.getRulesOutput(addRules());
-
+    public Automaton() throws IOException {
 //        createPDAfromCFG(grammar);
 //        mainFunction(grammar);
 
 //        getFirst(grammar, "A");
 //        getFollow(grammar, "S");
+//        doMainFunction(grammar);
 
-        doMainFunction(grammar);
+        readInput();
         List<String> terminals = generateTerminals(numGenTerm);
         List<String> nonTerminals = generateNonTerminals(numGenNonTerm);
         unusedNonTerminals = new ArrayList<>(nonTerminals);
-
-        List<Rule> rules = generateRules(nonTerminals, terminals, numRulesPerNonTerm);
-        Rule labelZero = pickLabelForZero(rules);
-        Rule labelOne = pickLabelForOne(rules, labelZero);
-//        String binaryWord = getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel(), labelOne.getLabel());
-
-        rules = generateExtraRules(rules, labelZero, labelOne, terminals, nonTerminals);
         Grammar grammarGen = new Grammar();
-        grammarGen.setInitTerminal("S");
+        grammarGen.setInitNonTerminal("S");
         grammarGen.setTerminals(terminals);
         grammarGen.setNonTerminals(nonTerminals);
-        grammarGen.setRules(rules);
 
 
-        System.out.println(rules);
+        List<String> labels = new ArrayList<>();
+        Rule labelZero = new Rule();
+        Rule labelOne = new Rule();
+        List<Rule> rules = new ArrayList<>();
+        Grammar newGrammar = new Grammar();
+        FiniteAutomaton finAutomaton = new FiniteAutomaton();
+        FiniteAutomaton automatonGramm = new FiniteAutomaton();
+        FiniteAutomaton comAutomaton = new FiniteAutomaton();
 
-        Grammar newGrammar = createSpecialGrammar(grammarGen);
+        while(labels.size() == 0) {
+            rules = generateRules(nonTerminals, terminals, numRulesPerNonTerm);
+            labelZero = pickLabelForZero(rules, grammarGen);
+            labelOne = pickLabelForOne(rules, labelZero, grammarGen);
+//        String binaryWord =
+// getEncryptedWord(getUsedRulesToLabels(usedRules), labelZero.getLabel(), labelOne.getLabel());
 
-        List<String> encryptedList = getEncryptedWordToLabels(binaryWord, labelZero.getLabel(), labelOne.getLabel());
+            rules = generateExtraRules(rules, labelZero, labelOne, terminals, nonTerminals);
+            grammarGen.setRules(rules);
 
-        FiniteAutomaton finAutomaton = setAutomatonForRegularExpression(labelZero, labelOne, rules, binaryWord);
+            newGrammar = createSpecialGrammar(grammarGen);
 
-        FiniteAutomaton automatonGramm = setAutomatonForSpecialGrammar(newGrammar);
+            List<String> encryptedList = getEncryptedWordToLabels(binaryWord, labelZero.getLabel(), labelOne.getLabel());
 
-        List<String> labels = setAutomatonToGraph(setCombinedAutomaton(finAutomaton,automatonGramm));
+            finAutomaton = setAutomatonForRegularExpression(labelZero, labelOne, rules, binaryWord);
 
-        String word = setLabelsToDerivatedWord(labels,grammarGen);
+            automatonGramm = setAutomatonForSpecialGrammar(newGrammar);
+            comAutomaton = setCombinedAutomaton(finAutomaton, automatonGramm);
+
+            labels = setAutomatonToGraph(comAutomaton);
+        }
+
+        System.out.println("\nRules:");
+        grammarGen.getRulesOutput(grammarGen.getRules());
+        System.out.println("\nLabel picked as g(0): ");
+        grammarGen.getRuleOutput(labelZero);
+        System.out.println("\n Label picked as g(1): ");
+        grammarGen.getRuleOutput(labelOne);
+
+        System.out.println("\n\nCREATING SPECIAL GRAMMAR");
+        System.out.println("\nNonTerminals: " + newGrammar.getNonTerminals());
+        System.out.println("\nTerminals: " + newGrammar.getTerminals());
+        System.out.println("\nInit Symbol: " + newGrammar.getInitNonTerminal());
+        System.out.println("\nRules: ");
+        grammarGen.getRulesOutput(newGrammar.getRules());
+
+        System.out.println("\n\nAUTOMATON FOR REGULAR EXPRESSION");
+        finAutomaton.printAutomaton();
+
+        System.out.println("\n\nAUTOMATON FOR SPECIAL GRAMMAR");
+        automatonGramm.printAutomaton();
+
+
+        System.out.println("\n\nCOMBINED AUTOMATON");
+        comAutomaton.printAutomaton();
+
+        System.out.println("Rules used in automaton as transition: "+labels);
+
+
+        String word = setLabelsToDerivatedWord(labels, grammarGen);
         derivatedWord = word;
         doMainFunction(grammarGen);
+        List<String> usedLabelsInDecryption = getUsedRulesToLabels(usedRules);
+        String decryptedWord = decryptFromWord(usedLabelsInDecryption, labelZero, labelOne);
+
+        System.out.println("DECRYPTED WORD: "+decryptedWord);
+
+
 
 //       List<String> regularExp = (Arrays.asList("xyz", "abc"));
-        boolean accepted = startAutomatonForRegularExpression(encryptedList, finAutomaton);
+//        boolean accepted = startAutomatonForRegularExpression(encryptedList, finAutomaton);
 
 
-        System.out.println(newGrammar);
+//        System.out.println(newGrammar);
     }
 
     public Grammar getGrammar() {
@@ -105,18 +147,18 @@ public class Automaton {
     }
 
     //Rules for Grammar in Lecture Sheet ---> hardcoded
-    public List<Rule> addRules() {
-        List<Rule> rules = new ArrayList<>();
-
-        rules.add(new Rule("r1", "S", "Cc"));
-        rules.add(new Rule("r3", "A", "b"));
-        rules.add(new Rule("r4", "A", EPSILON));
-        rules.add(new Rule("r5", "B", "aS"));
-        rules.add(new Rule("r6", "B", EPSILON));
-        rules.add(new Rule("r7", "C", "AeCf"));
-        rules.add(new Rule("r8", "C", "aB"));
-        return rules;
-    }
+//    public List<Rule> addRules() {
+//        List<Rule> rules = new ArrayList<>();
+//
+//        rules.add(new Rule("r1", "S", "Cc"));
+//        rules.add(new Rule("r3", "A", "b"));
+//        rules.add(new Rule("r4", "A", EPSILON));
+//        rules.add(new Rule("r5", "B", "aS"));
+//        rules.add(new Rule("r6", "B", EPSILON));
+//        rules.add(new Rule("r7", "C", "AeCf"));
+//        rules.add(new Rule("r8", "C", "aB"));
+//        return rules;
+//    }
 
     public List<String> addNonTerminals(List<Rule> rules) {
         List<String> nonTerminals = new ArrayList<>();
@@ -160,7 +202,7 @@ public class Automaton {
         Stack stack = new Stack();
 
         stack.push("$");
-        stack.push(grammar.getInitTerminal());
+        stack.push(grammar.getInitNonTerminal());
 
 //       while (pos <= derivatedWord.length() - 1) {
         if (!checkFunction(grammar, stack)) {
@@ -217,7 +259,7 @@ public class Automaton {
         usedRules = new ArrayList<>();
 
         stack.push("$");
-        stack.push(grammar.getInitTerminal());
+        stack.push(grammar.getInitNonTerminal());
 //        stack.push("A");
 //        stack.push("A");
         while (!stack.peek().equals("$")) {
@@ -230,7 +272,7 @@ public class Automaton {
                 for (int i = 0; i < getWordBackWards(rule.getRightSide()).length(); i++) {
                     stack.push(String.valueOf(getWordBackWards(rule.getRightSide()).charAt(i)));
                 }
-                while((stack.peek().equals(String.valueOf(derivatedWord.charAt(0))) && ((!stack.peek().equals("$")) || (derivatedWord.length() >0)) )) {
+                while ((derivatedWord.length() > 0) && (stack.peek().equals(String.valueOf(derivatedWord.charAt(0))) && (!stack.peek().equals("$")))) {
                     stack.pop();
                     derivatedWord = deleteFirstChar(derivatedWord);
                 }
@@ -254,7 +296,7 @@ public class Automaton {
 
         List<Transition> allTransitions = makeTransitions(grammar);
 
-        stack.push(grammar.getInitTerminal());
+        stack.push(grammar.getInitNonTerminal());
 
         //TU ZACNE LOOP (while)...!!!
 
@@ -317,10 +359,10 @@ public class Automaton {
 
 //        for (Rule r : grammar.getRules()) {
 //            if (stack.peek() == "$") {
-//                stack.push(grammar.getInitTerminal());
-//                printPush(grammar.getInitTerminal());
+//                stack.push(grammar.getInitNonTerminal());
+//                printPush(grammar.getInitNonTerminal());
 //                if (r.getLeftSide() == stack.peek() && r.getRightSide().length() > 1) {
-//                    stack.set(stack.search(grammar.getInitTerminal()), r.getRightSide().charAt(r.getRightSide().length() - 1));
+//                    stack.set(stack.search(grammar.getInitNonTerminal()), r.getRightSide().charAt(r.getRightSide().length() - 1));
 //                    for (int i = r.getRightSide().length() - 2; i >= 0; i--) {
 //                        stack.push(r.getRightSide().charAt(i));
 //                    }
@@ -566,10 +608,10 @@ public class Automaton {
         return rules.size() == 1 ? rules.get(0) : null;
     }
 
-    public String getUsedRulesToLabels(List<Rule> rules) {
-        String labels = "";
+    public List<String> getUsedRulesToLabels(List<Rule> rules) {
+        List<String> labels = new ArrayList<>();
         for (Rule r : rules) {
-            labels += r.getLabel();
+            labels.add(r.getLabel());
         }
         return labels;
     }
@@ -625,7 +667,7 @@ public class Automaton {
 
     public List<Rule> generateRules(List<String> nonTerminals, List<String> terminals, int numRules) {
         List<Rule> generatedRules = new ArrayList<>();
-        int random = generateRandInt(0, nonTerminals.size()-1);
+        int random = generateRandInt(0, nonTerminals.size() - 1);
         int counter = 0;
         for (String str : nonTerminals) {
             for (int i = 0; i < numRules; i++) {
@@ -645,7 +687,7 @@ public class Automaton {
         unusedNonTerminals.remove(nonTerminals.get(0));
 
         int index = 0;
-        while(unusedNonTerminals.size()>0){
+        while (unusedNonTerminals.size() > 0) {
             Rule rule = new Rule();
             rule.setLeftSide(nonTerminals.get(index));
             rule.setLabel("r" + counter);
@@ -849,19 +891,21 @@ public class Automaton {
         return randomNum;
     }
 
-    public Rule pickLabelForZero(List<Rule> rules) {
-        int randomPosition = generateRandInt(0, rules.size() - 1);
-        return rules.get(randomPosition);
+    public Rule pickLabelForZero(List<Rule> rules, Grammar grammar) {
+        List<Rule> onlyNonTerminalRules = getAllNonTerminalRules(rules, grammar);
+        int randomPosition = generateRandInt(0, onlyNonTerminalRules.size() - 1);
+        return onlyNonTerminalRules.get(randomPosition);
     }
 
-    public Rule pickLabelForOne(List<Rule> rules, Rule zeroLabel) {
+    public Rule pickLabelForOne(List<Rule> rules, Rule zeroLabel, Grammar grammar) {
         boolean flag = true;
         int randomPosition = 0;
+        List<Rule> onlyNonTerminalRules = getAllNonTerminalRules(rules, grammar);
         while (flag) {
-            randomPosition = generateRandInt(0, rules.size() - 1);
-            flag = rules.get(randomPosition).getLabel().equals(zeroLabel.getLabel());
+            randomPosition = generateRandInt(0, onlyNonTerminalRules.size() - 1);
+            flag = onlyNonTerminalRules.get(randomPosition).getLabel().equals(zeroLabel.getLabel());
         }
-        return rules.get(randomPosition);
+        return onlyNonTerminalRules.get(randomPosition);
     }
 
 
@@ -927,7 +971,7 @@ public class Automaton {
 
     public Grammar createSpecialGrammar(Grammar grammar) {
         Grammar newGrammar = new Grammar();
-        newGrammar.setInitTerminal(grammar.getInitTerminal());
+        newGrammar.setInitNonTerminal(grammar.getInitNonTerminal());
         newGrammar.setNonTerminals(grammar.getNonTerminals());
         List<String> terminals = new ArrayList<>();
         List<Rule> rules = new ArrayList<>();
@@ -979,7 +1023,7 @@ public class Automaton {
         automat.setStates(grammar.getNonTerminals());
         automat.getStates().add("qf");
         automat.setFiniteSymbol("qf");
-        automat.setInitSymbol(grammar.getInitTerminal());
+        automat.setInitSymbol(grammar.getInitNonTerminal());
 
         for (Rule r : grammar.getRules()) {
             if (grammar.containsOnlyTerminal(r.getRightSide())) {
@@ -1045,21 +1089,21 @@ public class Automaton {
         AutomatonRule newRule;
 
         List<AutomatonRule> newRules = new ArrayList<>();
-        comAutomaton.setInitSymbol(regAutomaton.getInitSymbol()+ ","+ specialGrammar.getInitSymbol());
-        comAutomaton.setFiniteSymbol(regAutomaton.getFiniteSymbol()+","+specialGrammar.getFiniteSymbol());
+        comAutomaton.setInitSymbol(regAutomaton.getInitSymbol() + "," + specialGrammar.getInitSymbol());
+        comAutomaton.setFiniteSymbol(regAutomaton.getFiniteSymbol() + "," + specialGrammar.getFiniteSymbol());
 
         for (String regState : regAutomaton.getStates()) {
             for (String specialState : specialGrammar.getStates()) {
                 regRules = getAllOnInRulesInState(regAutomaton.getRules(), regState);
                 specialRules = getAllOnInRulesInState(specialGrammar.getRules(), specialState);
-                for(String rule: regRules){
-                    if(specialRules.contains(rule)){
-                      newRule =  new AutomatonRule(regState+","+specialState,getToInRule(getAllRulesInState(regAutomaton.getRules(),regState),regState,rule).getTo()+","
-                              + getToInRule(getAllRulesInState(specialGrammar.getRules(),specialState),specialState,rule).getTo(),rule);
-                      if(!newRules.contains(newRule) &&(!(regState+","+specialState).equals(getToInRule(getAllRulesInState(regAutomaton.getRules(),regState),regState,rule).getTo()+","
-                              + getToInRule(getAllRulesInState(specialGrammar.getRules(),specialState),specialState,rule).getTo()))){
-                          newRules.add(newRule);
-                      }
+                for (String rule : regRules) {
+                    if (specialRules.contains(rule)) {
+                        newRule = new AutomatonRule(regState + "," + specialState, getToInRule(getAllRulesInState(regAutomaton.getRules(), regState), regState, rule).getTo() + ","
+                                + getToInRule(getAllRulesInState(specialGrammar.getRules(), specialState), specialState, rule).getTo(), rule);
+                        if (!newRules.contains(newRule) && (!(regState + "," + specialState).equals(getToInRule(getAllRulesInState(regAutomaton.getRules(), regState), regState, rule).getTo() + ","
+                                + getToInRule(getAllRulesInState(specialGrammar.getRules(), specialState), specialState, rule).getTo()))) {
+                            newRules.add(newRule);
+                        }
                     }
                 }
 
@@ -1074,14 +1118,14 @@ public class Automaton {
 //             }
 //        }
 
-        for(AutomatonRule rule: modifiedRules){
-            if(!states.contains(rule.getFrom())) {
+        for (AutomatonRule rule : modifiedRules) {
+            if (!states.contains(rule.getFrom())) {
                 states.add(rule.getFrom());
             }
-            if(!states.contains(rule.getTo())) {
+            if (!states.contains(rule.getTo())) {
                 states.add(rule.getTo());
             }
-            if(!alphabet.contains(rule.getOn())) {
+            if (!alphabet.contains(rule.getOn())) {
                 alphabet.add(rule.getOn());
             }
         }
@@ -1140,56 +1184,56 @@ public class Automaton {
     public AutomatonRule getToInRule(List<AutomatonRule> rules, String state, String onRule) {
         for (AutomatonRule r : rules) {
             if (r.getFrom().equals(state)) {
-                if(r.getOn().equals(onRule))
-                return r;
+                if (r.getOn().equals(onRule))
+                    return r;
             }
         }
         return null;
     }
 
     //checks if the current from rule is somewhere before as end rule
-    public boolean isStateInUse(List<AutomatonRule> rules, String state){
-        for(AutomatonRule rule: rules){
-            if(rule.getTo().equals(state)){
+    public boolean isStateInUse(List<AutomatonRule> rules, String state) {
+        for (AutomatonRule rule : rules) {
+            if (rule.getTo().equals(state)) {
                 return true;
             }
         }
         return false;
     }
 
-    public List<String> setAutomatonToGraph(FiniteAutomaton automaton){
+    public List<String> setAutomatonToGraph(FiniteAutomaton automaton) {
         Graph graph = new Graph(automaton.getStates().size());
         List<List<Integer>> result = new ArrayList<>();
-        for(AutomatonRule rule: automaton.getRules()){
-            graph.addEdge(findPositionOfRuleInState(automaton.getStates(),rule.getFrom()),
-                    findPositionOfRuleInState(automaton.getStates(),rule.getTo()));
+        for (AutomatonRule rule : automaton.getRules()) {
+            graph.addEdge(findPositionOfRuleInState(automaton.getStates(), rule.getFrom()),
+                    findPositionOfRuleInState(automaton.getStates(), rule.getTo()));
 
         }
-        result =graph.printAllPaths(findPositionOfRuleInState(automaton.getStates(),automaton.getInitSymbol()),findPositionOfRuleInState(automaton.getStates(),automaton.getFiniteSymbol()));
-        System.out.println(result);
-        if(!result.isEmpty()) {
-            List<String> labels = putLabelsTogether(result.get(0), automaton);
-            System.out.println(labels);
-            return labels;
+        result = graph.printAllPaths(findPositionOfRuleInState(automaton.getStates(), automaton.getInitSymbol()), findPositionOfRuleInState(automaton.getStates(), automaton.getFiniteSymbol()));
+//        System.out.println(result);
+        List<String> labels = new ArrayList<>();
+        if (!result.isEmpty()) {
+            labels = putLabelsTogether(result.get(0), automaton);
+//            System.out.println(labels);
         }
-        return null;
+        return labels;
     }
 
     //for quicker find the position of Rule from- to in List of States
-    public int findPositionOfRuleInState(List<String> states, String rule){
-        for(int i = 0 ; i < states.size(); i++){
-            if(states.get(i).equals(rule)){
+    public int findPositionOfRuleInState(List<String> states, String rule) {
+        for (int i = 0; i < states.size(); i++) {
+            if (states.get(i).equals(rule)) {
                 return i;
             }
         }
         return -1;
     }
 
-    public List<String> putLabelsTogether(List<Integer> list, FiniteAutomaton automat){
+    public List<String> putLabelsTogether(List<Integer> list, FiniteAutomaton automat) {
         List<String> allLabels = new ArrayList<>();
-        for(int i = 0 ; i< list.size() ; i++){
-            if(i+1 < list.size()){
-               allLabels.add(findRuleByStates(automat.getRules(),automat.getStates().get(list.get(i)),automat.getStates().get(list.get(i+1))).getOn());
+        for (int i = 0; i < list.size(); i++) {
+            if (i + 1 < list.size()) {
+                allLabels.add(findRuleByStates(automat.getRules(), automat.getStates().get(list.get(i)), automat.getStates().get(list.get(i + 1))).getOn());
             }
         }
 
@@ -1197,22 +1241,70 @@ public class Automaton {
     }
 
     //i have state1 and state2 but i need rule that represents these two states
-    public AutomatonRule findRuleByStates(List<AutomatonRule> rules,String stateFrom, String stateTo){
-        for(AutomatonRule rule: rules){
-         if(rule.getFrom().equals(stateFrom) && rule.getTo().equals(stateTo))   {
-             return rule;
-         }
+    public AutomatonRule findRuleByStates(List<AutomatonRule> rules, String stateFrom, String stateTo) {
+        for (AutomatonRule rule : rules) {
+            if (rule.getFrom().equals(stateFrom) && rule.getTo().equals(stateTo)) {
+                return rule;
+            }
         }
-      return  null;
+        return null;
     }
 
-    public String setLabelsToDerivatedWord(List<String> labels, Grammar grammar){
+    public String setLabelsToDerivatedWord(List<String> labels, Grammar grammar) {
         String word = grammar.findRuleByLabel(labels.get(0)).getLeftSide();
-        for(String str: labels){
-            Rule rule =grammar.findRuleByLabel(str);
-          word = word.replace(rule.getLeftSide(),rule.getRightSide());
+        for (String str : labels) {
+            Rule rule = grammar.findRuleByLabel(str);
+            word = word.replace(rule.getLeftSide(), rule.getRightSide());
         }
         return word;
+    }
+
+    public String decryptFromWord(List<String> labels, Rule label0, Rule label1) {
+        String decryptedWord = "";
+        for (String str : labels) {
+            if (str.equals(label0.getLabel())) {
+                decryptedWord += "0";
+            } else if (str.equals(label1.getLabel())) {
+                decryptedWord += "1";
+            }
+        }
+        return decryptedWord;
+    }
+
+    public List<Rule> getAllNonTerminalRules(List<Rule> rules, Grammar grammar){
+        List<Rule> list = new ArrayList<>();
+        for(Rule rule: rules){
+            if(!grammar.containsOnlyTerminal(rule.getRightSide())){
+                list.add(rule);
+            }
+        }
+
+        return list;
+    }
+
+    public void readInput() throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter number of NonTerminals for Grammar: ");
+        try{
+            numGenNonTerm = Integer.parseInt(br.readLine());
+        }catch(NumberFormatException nfe){
+            System.err.println("Invalid Format!");
+        }
+        System.out.print("Enter number of terminals for Grammar: ");
+        try{
+            numGenTerm = Integer.parseInt(br.readLine());
+        }catch(NumberFormatException nfe){
+            System.err.println("Invalid Format!");
+        }
+        System.out.print("Enter number of rules for Grammar: ");
+        try{
+            numRulesPerNonTerm = Integer.parseInt(br.readLine());
+        }catch(NumberFormatException nfe){
+            System.err.println("Invalid Format!");
+        }
+
+        System.out.print("Enter word to be encrypted: ");
+        binaryWord = br.readLine();
     }
 
 

@@ -9,13 +9,13 @@ import java.util.List;
 public class Grammar {
     private List<String> nonTerminals;
     private List<String> terminals;
-    private String initTerminal;
+    private String initNonTerminal;
     private List<Rule> rules;
 
-    public Grammar(List<String> nonTerminals, List<String> terminals, String initTerminal, List<Rule> rules) {
+    public Grammar(List<String> nonTerminals, List<String> terminals, String initNonTerminal, List<Rule> rules) {
         this.nonTerminals = nonTerminals;
         this.terminals = terminals;
-        this.initTerminal = initTerminal;
+        this.initNonTerminal = initNonTerminal;
         this.rules = rules;
     }
 
@@ -38,12 +38,12 @@ public class Grammar {
         this.terminals = terminals;
     }
 
-    public String getInitTerminal() {
-        return initTerminal;
+    public String getInitNonTerminal() {
+        return initNonTerminal;
     }
 
-    public void setInitTerminal(String initTerminal) {
-        this.initTerminal = initTerminal;
+    public void setInitNonTerminal(String initNonTerminal) {
+        this.initNonTerminal = initNonTerminal;
     }
 
     public List<Rule> getRules() {
@@ -57,12 +57,16 @@ public class Grammar {
     public void getRulesOutput(List<Rule> rules) {
         List<String> output = new ArrayList<>();
         for (Rule rule : rules) {
-            output.add(rule.getLabel() + ":" + rule.getLeftSide() + "-->" + rule.getRightSide());
+            output.add(rule.getLabel() + ": " + rule.getLeftSide() + " --> " + rule.getRightSide());
         }
 
         for (String s : output) {
             System.out.println(s);
         }
+    }
+
+    public void getRuleOutput(Rule rule) {
+        System.out.println(rule.getLabel() + ": " + rule.getLeftSide() + " --> " + rule.getRightSide());
     }
 
     public Rule findRuleByLabel(String label) {

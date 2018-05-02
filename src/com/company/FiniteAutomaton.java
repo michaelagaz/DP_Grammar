@@ -63,5 +63,16 @@ public class FiniteAutomaton {
         this.rules = rules;
     }
 
+    public void printAutomaton(){
+        System.out.println("\nInit Symbol of automaton: "+this.getInitSymbol());
+        System.out.println("\nFinite Symbol of automaton: "+this.getFiniteSymbol());
+        System.out.println("\nStates of automaton: "+this.getStates());
+        System.out.println("\nAlphabet of automaton: "+this.getAlphabet());
+        System.out.println("\nRules: ");
+        for(AutomatonRule rule: this.getRules()){
+            System.out.println(rule.getFrom()+" ---"+rule.getOn()+"---> "+rule.getTo());
+        }
+    }
+
 
 }

@@ -62,7 +62,7 @@ public class Graph {
 
         //Call recursive utility
         printAllPathsUtil(s, d, isVisited, pathList);
-        System.out.println(results);
+//        System.out.println(results);
         return this.results;
     }
 
@@ -82,7 +82,7 @@ public class Graph {
         if (u.equals(d))
         {
             this.results.add(localPathList);
-            System.out.println(localPathList);
+//            System.out.println(localPathList);
         }
 
         // Recur for all the vertices
