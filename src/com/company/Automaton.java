@@ -94,6 +94,11 @@ public class Automaton {
             labels = setAutomatonToGraph(comAutomaton);
         }
 
+//        grammarGen.getNonTerminals().remove("qf");
+        System.out.println("\n\nGENERATING GRAMMAR");
+        System.out.println("\nNonTerminals: " + grammarGen.getNonTerminals());
+        System.out.println("\nTerminals: " + grammarGen.getTerminals());
+        System.out.println("\nInit Symbol: " + grammarGen.getInitNonTerminal());
         System.out.println("\nRules:");
         grammarGen.getRulesOutput(grammarGen.getRules());
         System.out.println("\nLabel picked as g(0): ");
@@ -101,6 +106,7 @@ public class Automaton {
         System.out.println("\n Label picked as g(1): ");
         grammarGen.getRuleOutput(labelOne);
 
+//        newGrammar.getRules().remove("qf");
         System.out.println("\n\nCREATING SPECIAL GRAMMAR");
         System.out.println("\nNonTerminals: " + newGrammar.getNonTerminals());
         System.out.println("\nTerminals: " + newGrammar.getTerminals());
@@ -971,8 +977,9 @@ public class Automaton {
 
     public Grammar createSpecialGrammar(Grammar grammar) {
         Grammar newGrammar = new Grammar();
+        List<String> nonTerminals = new ArrayList<>(grammar.getNonTerminals());
         newGrammar.setInitNonTerminal(grammar.getInitNonTerminal());
-        newGrammar.setNonTerminals(grammar.getNonTerminals());
+        newGrammar.setNonTerminals(nonTerminals);
         List<String> terminals = new ArrayList<>();
         List<Rule> rules = new ArrayList<>();
 
@@ -1018,9 +1025,9 @@ public class Automaton {
     public FiniteAutomaton setAutomatonForSpecialGrammar(Grammar grammar) {
         FiniteAutomaton automat = new FiniteAutomaton();
         List<AutomatonRule> rules = new ArrayList<>();
-        List<String> states = new ArrayList<>();
+        List<String> states = new ArrayList<>(grammar.getNonTerminals());
         automat.setAlphabet(grammar.getTerminals());
-        automat.setStates(grammar.getNonTerminals());
+        automat.setStates(states);
         automat.getStates().add("qf");
         automat.setFiniteSymbol("qf");
         automat.setInitSymbol(grammar.getInitNonTerminal());
