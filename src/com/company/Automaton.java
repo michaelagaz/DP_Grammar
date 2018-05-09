@@ -31,6 +31,7 @@ public class Automaton {
 
     String binaryWord = "0101010000100001";
 
+
     int pos;
 
     //number of Terminals, nonTerminals and rules for one nonTerminal -> used for generating grammar
@@ -54,6 +55,8 @@ public class Automaton {
 //        doMainFunction(grammar);
 
         readInput();
+
+        long startTime = System.nanoTime();
         List<String> terminals = generateTerminals(numGenTerm);
         List<String> nonTerminals = generateNonTerminals(numGenNonTerm);
         unusedNonTerminals = new ArrayList<>(nonTerminals);
@@ -62,7 +65,11 @@ public class Automaton {
         grammarGen.setTerminals(terminals);
         grammarGen.setNonTerminals(nonTerminals);
 
-
+        long endTime =0;
+        long startTime2 = 0;
+        long endTime2 = 0;
+        long startTime3 = 0;
+        long endTime3 = 0;
         List<String> labels = new ArrayList<>();
         Rule labelZero = new Rule();
         Rule labelOne = new Rule();
@@ -72,7 +79,7 @@ public class Automaton {
         FiniteAutomaton automatonGramm = new FiniteAutomaton();
         FiniteAutomaton comAutomaton = new FiniteAutomaton();
 
-        while(labels.size() == 0) {
+        while (labels.size() == 0) {
             rules = generateRules(nonTerminals, terminals, numRulesPerNonTerm);
             labelZero = pickLabelForZero(rules, grammarGen);
             labelOne = pickLabelForOne(rules, labelZero, grammarGen);
@@ -82,6 +89,9 @@ public class Automaton {
             rules = generateExtraRules(rules, labelZero, labelOne, terminals, nonTerminals);
             grammarGen.setRules(rules);
 
+            endTime = System.nanoTime();
+
+            startTime2 = System.nanoTime();
             newGrammar = createSpecialGrammar(grammarGen);
 
             List<String> encryptedList = getEncryptedWordToLabels(binaryWord, labelZero.getLabel(), labelOne.getLabel());
@@ -92,6 +102,7 @@ public class Automaton {
             comAutomaton = setCombinedAutomaton(finAutomaton, automatonGramm);
 
             labels = setAutomatonToGraph(comAutomaton);
+            endTime2 = System.nanoTime();
         }
 
 //        grammarGen.getNonTerminals().remove("qf");
@@ -105,6 +116,8 @@ public class Automaton {
         grammarGen.getRuleOutput(labelZero);
         System.out.println("\n Label picked as g(1): ");
         grammarGen.getRuleOutput(labelOne);
+
+
 
 //        newGrammar.getRules().remove("qf");
         System.out.println("\n\nCREATING SPECIAL GRAMMAR");
@@ -124,17 +137,22 @@ public class Automaton {
         System.out.println("\n\nCOMBINED AUTOMATON");
         comAutomaton.printAutomaton();
 
-        System.out.println("Rules used in automaton as transition: "+labels);
+
+        System.out.println("Rules used in automaton as transition: " + labels);
 
 
+        startTime3 = System.nanoTime();
         String word = setLabelsToDerivatedWord(labels, grammarGen);
         derivatedWord = word;
         doMainFunction(grammarGen);
         List<String> usedLabelsInDecryption = getUsedRulesToLabels(usedRules);
         String decryptedWord = decryptFromWord(usedLabelsInDecryption, labelZero, labelOne);
+        endTime3 = System.nanoTime();
+        System.out.println("Genereting of the grammar took: " + (endTime - startTime) * 0.000000001 + " s");
+        System.out.println("Encryption took: " + (endTime2 - startTime2) * 0.000000001 + " s");
+        System.out.println("Decryption took: " + (endTime3 - startTime3) * 0.000000001 + " s");
 
-        System.out.println("DECRYPTED WORD: "+decryptedWord);
-
+        System.out.println("DECRYPTED WORD: " + decryptedWord);
 
 
 //       List<String> regularExp = (Arrays.asList("xyz", "abc"));
@@ -1278,10 +1296,10 @@ public class Automaton {
         return decryptedWord;
     }
 
-    public List<Rule> getAllNonTerminalRules(List<Rule> rules, Grammar grammar){
+    public List<Rule> getAllNonTerminalRules(List<Rule> rules, Grammar grammar) {
         List<Rule> list = new ArrayList<>();
-        for(Rule rule: rules){
-            if(!grammar.containsOnlyTerminal(rule.getRightSide())){
+        for (Rule rule : rules) {
+            if (!grammar.containsOnlyTerminal(rule.getRightSide())) {
                 list.add(rule);
             }
         }
@@ -1292,21 +1310,21 @@ public class Automaton {
     public void readInput() throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         System.out.print("Enter number of NonTerminals for Grammar: ");
-        try{
+        try {
             numGenNonTerm = Integer.parseInt(br.readLine());
-        }catch(NumberFormatException nfe){
+        } catch (NumberFormatException nfe) {
             System.err.println("Invalid Format!");
         }
         System.out.print("Enter number of terminals for Grammar: ");
-        try{
+        try {
             numGenTerm = Integer.parseInt(br.readLine());
-        }catch(NumberFormatException nfe){
+        } catch (NumberFormatException nfe) {
             System.err.println("Invalid Format!");
         }
         System.out.print("Enter number of rules for Grammar: ");
-        try{
+        try {
             numRulesPerNonTerm = Integer.parseInt(br.readLine());
-        }catch(NumberFormatException nfe){
+        } catch (NumberFormatException nfe) {
             System.err.println("Invalid Format!");
         }
 
